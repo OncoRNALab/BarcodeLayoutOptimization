@@ -1,0 +1,80 @@
+================================================================================
+REPEATED QUADTREE BARCODE LAYOUT GENERATOR (with RLL)
+================================================================================
+
+Configuration:
+  Grid size: 118 × 182 = 21,476 spots
+  Segment length: 8nt
+  Number of segments: 3
+  Total barcode length: 24nt
+  Max run length: 1 (forbids homopolymers)
+  Minimum length for uniqueness: 8nt
+  Each segment (8nt) ✅ satisfies this requirement
+Generating 3 RLL-controlled quadtree segments of 8nt each...
+  max_run = 1 (forbids homopolymers)
+  RLL will be applied continuously across segments to prevent boundary homopolymers
+
+  Generating continuous 24nt barcode with RLL...
+    Generating 24 cycles (this may take a minute)...
+      Cycle 5/24...
+      Cycle 10/24...
+      Cycle 15/24...
+      Cycle 20/24...
+  ✅ Generated continuous 24nt barcodes with RLL
+    Forced flips: 119055 (0.2410 rate)
+    Violations avoided: 119055
+
+Verifying homopolymer constraint (max_run=1)...
+  ✅ All barcodes satisfy max_run=1 constraint
+
+================================================================================
+LAYOUT ANALYSIS
+================================================================================
+
+Basic Statistics:
+  Total spots: 21,476
+  Unique barcodes: 21,474
+  Uniqueness: 99.9907%
+  Barcode length: 24nt
+
+⚠️  WARNING: 4 duplicate barcodes found!
+  Most common duplicate appears 2 times
+
+Homopolymer Analysis:
+  ✅ No homopolymers detected (AA, CC, GG, TT, etc.)
+
+RLL Quality Statistics (Continuous across all segments):
+  Total forced flips: 119055 (rate: 0.2410)
+  Violations avoided: 119055
+  Max run: 1
+
+Segment Analysis:
+  Segment 1: 8nt, 7,665 unique codes
+  Segment 2: 8nt, 6,748 unique codes
+  Segment 3: 8nt, 6,741 unique codes
+
+Spatial Similarity (comparing adjacent spots):
+  Position (0,0) vs (0,1): 14 differences (Hamming distance)
+  Position (0,1) vs (0,2): 21 differences (Hamming distance)
+  Position (1,0) vs (1,1): 15 differences (Hamming distance)
+  Position (58,90) vs (58,91): 13 differences (Hamming distance)
+Layout CSV written to layout_118x182_repeated_quadtree_24nt.csv
+  Total spots: 21476
+FASTA exported to layout_118x182_repeated_quadtree_24nt.fasta
+Column-major barcodes written to layout_118x182_repeated_quadtree_24nt_colmajor.txt
+  Total spots: 21476
+  Order: column-by-column (col 0, col 1, ..., col 181)
+Statistics written to layout_118x182_repeated_quadtree_24nt_stats.json
+  Total forced flips: 119055
+  Mean forced flip rate: 0.2410
+
+================================================================================
+SUMMARY
+================================================================================
+✅ Generated 21,476 barcodes of 24nt length
+✅ Using 3 RLL-controlled quadtree segments
+✅ Homopolymer prevention (max_run=1)
+✅ Column-major export for array fabrication
+✅ Maintains spatial similarity in all segments
+✅ Deterministic and reproducible
+================================================================================

@@ -1,0 +1,47 @@
+{
+    "description": "Configuration for hybrid quadtree layout generation - 235×363 array with 36nt barcodes",
+    "array_dimensions": {
+        "rows": 235,
+        "columns": 363,
+        "total_spots": 85305,
+        "comment": "235 rows × 363 columns = 85,305 spots"
+    },
+    "quadtree_configuration": {
+        "method": "hybrid_repeated_quadtree_plus_library",
+        "segment_length": 8,
+        "n_repeats": 3,
+        "quadtree_length": 24,
+        "comment": "3 segments of 8nt each = 24nt quadtree portion"
+    },
+    "library_configuration": {
+        "library_file": "/user/gent/446/vsc44685/ScratchVO_dir/layout_opt/inhouse_barcodes/bar_1in1_column_major_first12.txt",
+        "library_length": 12,
+        "total_barcodes_available": 85305,
+        "assignment_strategy": "sequential",
+        "comment": "12nt random library from first 12 bases of 18nt barcodes"
+    },
+    "total_barcode_length": 36,
+    "rll_configuration": {
+        "max_run": 3,
+        "comment": "max_run=3 allows up to 3 consecutive bases (e.g., AAA ok, AAAA forbidden)"
+    },
+    "algorithm": {
+        "spatial_encoding": "24nt hierarchical quadtree (RLL-controlled)",
+        "sequencing_quality": "12nt high Hamming distance library",
+        "combined_approach": "Spatial similarity + sequencing robustness"
+    },
+    "output": {
+        "layout_csv": "layout_235x363_hybrid_36nt.csv",
+        "barcodes_txt": "barcodes_235x363_hybrid_36nt.txt",
+        "statistics_json": "layout_235x363_hybrid_36nt_stats.json",
+        "column_major_ordering": true
+    },
+    "random_seed": 42,
+    "notes": [
+        "Hybrid approach: 24nt quadtree + 12nt library = 36nt total",
+        "Quadtree portion provides spatial similarity for synthesis error tolerance",
+        "Library portion provides high Hamming distance for sequencing quality",
+        "Sequential assignment ensures each library barcode used exactly once",
+        "RLL prevents homopolymers in quadtree portion only"
+    ]
+}

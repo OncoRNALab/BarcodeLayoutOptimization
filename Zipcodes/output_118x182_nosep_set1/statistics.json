@@ -1,0 +1,27 @@
+{
+  "generation_timestamp": "2026-01-15T14:40:50.581828",
+  "set_number": 1,
+  "configuration": {
+    "rows": 118,
+    "cols": 182,
+    "total_spots": 21476,
+    "x_bit_length": 36,
+    "y_bit_length": 36,
+    "random_seed": 42,
+    "encoding_scheme": "4-bits-per-base",
+    "spacer": ""
+  },
+  "results": {
+    "total_barcodes": 21476,
+    "unique_barcodes": 21476,
+    "barcode_length": 36,
+    "x_sequence_length": 18,
+    "y_sequence_length": 18,
+    "all_unique": true
+  },
+  "spatial_properties": {
+    "design_principle": "Gray-code-like: spatial neighbors have similar sequences",
+    "x_neighbor_distance_mean": null,
+    "y_neighbor_distance_mean": null
+  }
+}

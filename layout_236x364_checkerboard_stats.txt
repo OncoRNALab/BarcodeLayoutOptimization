@@ -1,0 +1,12 @@
+CHECKERBOARD LAYOUT STATISTICS
+============================================================
+
+Grid dimensions: 236 × 364 = 85,904 spots
+
+Set 1 barcodes: 21,476
+Set 2 barcodes: 21,476
+Total filled: 42,952 (50.00%)
+Empty spots: 42,952
+
+Pattern verification:
+  ✓ Perfect checkerboard pattern

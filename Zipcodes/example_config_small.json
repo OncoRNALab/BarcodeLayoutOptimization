@@ -1,0 +1,48 @@
+{
+  "chip_geometry": {
+    "type": "rectangular",
+    "rows": 20,
+    "cols": 30,
+    "feature_size_microns": 14,
+    "feature_spacing_microns": 16
+  },
+  "error_correction": {
+    "type": "edit_distance",
+    "distances": [2, 3, 4, 5],
+    "far_features_min_distance": 5
+  },
+  "x_bit_length": 12,
+  "y_bit_length": 12,
+  "bit_to_dna": {
+    "scheme": "2-bits-per-base",
+    "mapping": {
+      "00": "A",
+      "01": "C",
+      "10": "G",
+      "11": "T"
+    }
+  },
+  "sequence_qc": {
+    "gc_content_min": 0.3,
+    "gc_content_max": 0.7,
+    "max_homopolymer_length": 4,
+    "reject_sequences_with_long_homopolymers": true
+  },
+  "codebook": {
+    "spacer_sequence": "GGG",
+    "feature_id_format": "row_col",
+    "output_format": "csv"
+  },
+  "simulation": {
+    "error_model": "substitution",
+    "per_base_error_rate": 0.01,
+    "distance_metric": "hamming",
+    "max_edit_distance_for_decoding": 3
+  },
+  "axis_code": {
+    "max_attempts_per_position": 10000,
+    "backtrack_depth": 5,
+    "random_seed": 42,
+    "tolerance": 0.5
+  }
+}

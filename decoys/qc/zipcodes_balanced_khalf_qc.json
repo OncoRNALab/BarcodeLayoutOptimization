@@ -1,0 +1,104 @@
+{
+  "real": {
+    "n": 85305,
+    "n_unique": 85305,
+    "nearest_other_real": {
+      "min": 4.0,
+      "p05": 4.0,
+      "median": 6.0,
+      "mean": 5.6495,
+      "p95": 7.0,
+      "max": 8.0
+    },
+    "composition": {
+      "g_fraction": {
+        "min": 0.0,
+        "p05": 0.1111111111111111,
+        "median": 0.2222222222222222,
+        "mean": 0.2334375345980762,
+        "p95": 0.3611111111111111,
+        "max": 0.5277777777777778
+      },
+      "max_homopolymer": {
+        "min": 1.0,
+        "p05": 2.0,
+        "median": 3.0,
+        "mean": 3.344458120860442,
+        "p95": 5.0,
+        "max": 11.0
+      }
+    }
+  },
+  "manuscript_1to2": {
+    "file": "../output/zipcodes/zip_decoys.txt",
+    "n_in_file": 42802,
+    "n_used": 42802,
+    "n_unique": 42802,
+    "overlap_with_real": 0,
+    "global_decoy_share": 0.334111328811072,
+    "local_decoy_share_k10": 0.16995000000000002,
+    "local_decoy_share_nearest_ties": 0.10053234126984126,
+    "nearest_real": {
+      "min": 5.0,
+      "p05": 5.0,
+      "median": 7.0,
+      "mean": 6.5425,
+      "p95": 8.0,
+      "max": 8.0
+    },
+    "composition": {
+      "g_fraction": {
+        "min": 0.027777777777777776,
+        "p05": 0.1388888888888889,
+        "median": 0.2222222222222222,
+        "mean": 0.23281297862509018,
+        "p95": 0.3611111111111111,
+        "max": 0.5277777777777778
+      },
+      "max_homopolymer": {
+        "min": 1.0,
+        "p05": 2.0,
+        "median": 3.0,
+        "mean": 3.2817391710667727,
+        "p95": 5.0,
+        "max": 10.0
+      }
+    }
+  },
+  "balanced_khalf_1to1": {
+    "file": "../output/zipcodes_balanced_khalf/zip_decoys.txt",
+    "n_in_file": 85006,
+    "n_used": 85006,
+    "n_unique": 85006,
+    "overlap_with_real": 0,
+    "global_decoy_share": 0.4991221941037279,
+    "local_decoy_share_k10": 0.28245,
+    "local_decoy_share_nearest_ties": 0.1680661075036075,
+    "nearest_real": {
+      "min": 5.0,
+      "p05": 5.0,
+      "median": 7.0,
+      "mean": 6.5785,
+      "p95": 8.0,
+      "max": 8.0
+    },
+    "composition": {
+      "g_fraction": {
+        "min": 0.0,
+        "p05": 0.1388888888888889,
+        "median": 0.25,
+        "mean": 0.23902789868427587,
+        "p95": 0.3611111111111111,
+        "max": 0.5277777777777778
+      },
+      "max_homopolymer": {
+        "min": 1.0,
+        "p05": 2.0,
+        "median": 3.0,
+        "mean": 3.2451356374844127,
+        "p95": 5.0,
+        "max": 12.0
+      }
+    }
+  }
+}

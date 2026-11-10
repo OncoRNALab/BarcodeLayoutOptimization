@@ -1,0 +1,18 @@
+{
+  "n_simulated": 1000,
+  "n_correct": 813,
+  "n_near_error": 0,
+  "n_far_error": 0,
+  "n_ambiguous": 0,
+  "n_failed": 187,
+  "accuracy": 0.813,
+  "near_error_rate": 0.0,
+  "far_error_rate": 0.0,
+  "ambiguous_rate": 0.0,
+  "failed_rate": 0.187,
+  "x_distance_mean": 0.16851168511685116,
+  "y_distance_mean": 0.15129151291512916,
+  "x_distance_max": 3,
+  "y_distance_max": 2,
+  "n_individual_results": 1000
+}

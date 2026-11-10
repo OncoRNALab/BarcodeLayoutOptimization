@@ -1,0 +1,68 @@
+{
+  "real": {
+    "n": 85305,
+    "n_unique": 85305,
+    "nearest_other_real": {
+      "min": 9.0,
+      "p05": 13.0,
+      "median": 15.0,
+      "mean": 14.4465,
+      "p95": 16.0,
+      "max": 16.0
+    },
+    "composition": {
+      "g_fraction": {
+        "min": 0.0,
+        "p05": 0.1388888888888889,
+        "median": 0.2222222222222222,
+        "mean": 0.2145631036346704,
+        "p95": 0.25,
+        "max": 0.25
+      },
+      "max_homopolymer": {
+        "min": 1.0,
+        "p05": 2.0,
+        "median": 3.0,
+        "mean": 2.5976906394701365,
+        "p95": 3.0,
+        "max": 3.0
+      }
+    }
+  },
+  "pool_subset": {
+    "file": "../output/greedy/greedy_decoys.txt",
+    "n_in_file": 42652,
+    "n_used": 42652,
+    "n_unique": 42652,
+    "overlap_with_real": 0,
+    "global_decoy_share": 0.3333307282915354,
+    "local_decoy_share_k10": 0.345,
+    "local_decoy_share_nearest_ties": 0.36026615953490954,
+    "nearest_real": {
+      "min": 11.0,
+      "p05": 13.0,
+      "median": 15.0,
+      "mean": 14.4165,
+      "p95": 16.0,
+      "max": 16.0
+    },
+    "composition": {
+      "g_fraction": {
+        "min": 0.05555555555555555,
+        "p05": 0.1388888888888889,
+        "median": 0.2222222222222222,
+        "mean": 0.21027019704690156,
+        "p95": 0.25,
+        "max": 0.25
+      },
+      "max_homopolymer": {
+        "min": 1.0,
+        "p05": 2.0,
+        "median": 3.0,
+        "mean": 2.5405608177811123,
+        "p95": 3.0,
+        "max": 3.0
+      }
+    }
+  }
+}

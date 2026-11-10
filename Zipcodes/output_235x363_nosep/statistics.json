@@ -1,0 +1,24 @@
+{
+  "generation_timestamp": "2026-04-16T18:06:28.164240",
+  "configuration": {
+    "rows": 235,
+    "cols": 363,
+    "total_spots": 85305,
+    "x_bit_length": 36,
+    "y_bit_length": 36,
+    "encoding_scheme": "4-bits-per-base",
+    "spacer": ""
+  },
+  "results": {
+    "total_barcodes": 85305,
+    "unique_barcodes": 85305,
+    "barcode_length": 36,
+    "x_sequence_length": 18,
+    "y_sequence_length": 18,
+    "all_unique": true
+  },
+  "spatial_properties": {
+    "design_principle": "Gray-code-like: spatial neighbors have similar sequences",
+    "note": "Spatial distance analysis printed above"
+  }
+}

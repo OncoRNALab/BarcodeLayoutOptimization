@@ -1,0 +1,33 @@
+{
+  "generation_timestamp": "2026-01-22T20:03:41.278715",
+  "array_configuration": {
+    "pattern": "checkerboard",
+    "total_rows": 235,
+    "total_cols": 363,
+    "total_spots": 42653,
+    "array1_spots": 21476,
+    "array2_spots": 21177,
+    "block_pattern": "8x8 checkerboard"
+  },
+  "barcode_configuration": {
+    "barcodes_set1_available": 14152,
+    "barcodes_set2_available": 14060,
+    "barcode_segment_length": "18nt",
+    "full_barcode_length": "36nt"
+  },
+  "layout_statistics": {
+    "unique_combined_barcodes": 42653,
+    "unique_bar1_used": 1380,
+    "unique_bar2_used": 22041
+  },
+  "usage_statistics": {
+    "bar1_usage_range": [
+      5,
+      32
+    ],
+    "bar2_usage_range": [
+      1,
+      8
+    ]
+  }
+}

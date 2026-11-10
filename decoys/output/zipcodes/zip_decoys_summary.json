@@ -1,0 +1,63 @@
+{
+  "layout": "../../1in1/layout_235x363_zipcodes_nosep.csv",
+  "seed": 2026,
+  "candidates_per_virtual_code": 4000,
+  "n_real": 85305,
+  "n_virtual_columns": 91,
+  "n_virtual_rows": 59,
+  "n_decoys": 42802,
+  "decoy_to_real": 0.5017525350213938,
+  "decoy_fraction_of_whitelist": 0.334111328811072,
+  "real_column_code_bit_distances": {
+    "1": {
+      "mean": 8.779005524861878,
+      "min": 4,
+      "max": 12
+    },
+    "2": {
+      "mean": 9.055401662049862,
+      "min": 4,
+      "max": 13
+    },
+    "3": {
+      "mean": 9.627777777777778,
+      "min": 4,
+      "max": 14
+    },
+    "4": {
+      "mean": 10.484679665738161,
+      "min": 6,
+      "max": 15
+    },
+    "far": {
+      "mean": 17.872504318326822,
+      "min": 8
+    }
+  },
+  "real_row_code_bit_distances": {
+    "1": {
+      "mean": 8.803418803418804,
+      "min": 4,
+      "max": 12
+    },
+    "2": {
+      "mean": 9.034334763948499,
+      "min": 4,
+      "max": 13
+    },
+    "3": {
+      "mean": 9.702586206896552,
+      "min": 5,
+      "max": 14
+    },
+    "4": {
+      "mean": 10.41991341991342,
+      "min": 6,
+      "max": 15
+    },
+    "far": {
+      "mean": 17.84780726519857,
+      "min": 8
+    }
+  }
+}

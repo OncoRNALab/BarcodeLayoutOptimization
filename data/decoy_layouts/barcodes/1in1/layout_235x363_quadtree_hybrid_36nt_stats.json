@@ -1,0 +1,191 @@
+{
+  "generation_timestamp": "2026-04-16T15:30:44.982811",
+  "configuration": {
+    "description": "Configuration for hybrid quadtree layout generation - 235\u00d7363 array with 36nt barcodes",
+    "array_dimensions": {
+      "rows": 235,
+      "columns": 363,
+      "total_spots": 85305,
+      "comment": "235 rows \u00d7 363 columns = 85,305 spots"
+    },
+    "quadtree_configuration": {
+      "method": "hybrid_repeated_quadtree_plus_library",
+      "segment_length": 8,
+      "n_repeats": 3,
+      "quadtree_length": 24,
+      "comment": "3 segments of 8nt each = 24nt quadtree portion"
+    },
+    "library_configuration": {
+      "library_file": "/user/gent/446/vsc44685/ScratchVO_dir/layout_opt/inhouse_barcodes/bar_1in1_column_major_last12.txt",
+      "library_length": 12,
+      "total_barcodes_available": 85305,
+      "assignment_strategy": "sequential",
+      "comment": "12nt random library from first 12 bases of 18nt barcodes"
+    },
+    "total_barcode_length": 36,
+    "rll_configuration": {
+      "max_run": 3,
+      "comment": "max_run=3 allows up to 3 consecutive bases (e.g., AAA ok, AAAA forbidden)"
+    },
+    "algorithm": {
+      "spatial_encoding": "24nt hierarchical quadtree (RLL-controlled)",
+      "sequencing_quality": "12nt high Hamming distance library",
+      "combined_approach": "Spatial similarity + sequencing robustness"
+    },
+    "output": {
+      "layout_csv": "/user/gent/446/vsc44685/ScratchVO_dir/layoutOPT_results/decoy_layouts/barcodes/layout_235x363_quadtree_hybrid_36nt.csv",
+      "barcodes_txt": "/user/gent/446/vsc44685/ScratchVO_dir/layoutOPT_results/decoy_layouts/barcodes/barcodes_235x363_quadtree_hybrid_36nt.txt",
+      "statistics_json": "/user/gent/446/vsc44685/ScratchVO_dir/layoutOPT_results/decoy_layouts/barcodes/layout_235x363_quadtree_hybrid_36nt_stats.json",
+      "column_major_ordering": true
+    },
+    "random_seed": 1,
+    "notes": [
+      "Hybrid approach: 24nt quadtree + 12nt library = 36nt total",
+      "Quadtree portion provides spatial similarity for synthesis error tolerance",
+      "Library portion provides high Hamming distance for sequencing quality",
+      "Sequential assignment ensures each library barcode used exactly once",
+      "RLL prevents homopolymers in quadtree portion only"
+    ]
+  },
+  "layout_statistics": {
+    "total_spots": 85305,
+    "unique_combined_barcodes": 85305,
+    "total_barcode_length": 36,
+    "quadtree_length": 24,
+    "library_length": 12,
+    "grid_dimensions": {
+      "rows": 235,
+      "cols": 363
+    }
+  },
+  "quadtree_statistics": {
+    "unique_quadtree_codes": 56664,
+    "rll_stats": [
+      {
+        "forced_flips_per_cycle": [
+          0,
+          0,
+          0,
+          1305,
+          960,
+          960,
+          981,
+          973
+        ],
+        "violations_avoided_by_perm": [
+          0,
+          0,
+          0,
+          1305,
+          960,
+          960,
+          981,
+          973
+        ],
+        "pre_flip_repeats_per_cycle": [
+          0,
+          21177,
+          21177,
+          21177,
+          21152,
+          21140,
+          21141,
+          21141
+        ],
+        "max_run": 3,
+        "mean_forced_flip_rate": 0.008673080626658964,
+        "total_forced_flips": 5179,
+        "total_violations_avoided": 5179
+      },
+      {
+        "forced_flips_per_cycle": [
+          0,
+          0,
+          0,
+          1305,
+          960,
+          960,
+          981,
+          973
+        ],
+        "violations_avoided_by_perm": [
+          0,
+          0,
+          0,
+          1305,
+          960,
+          960,
+          981,
+          973
+        ],
+        "pre_flip_repeats_per_cycle": [
+          0,
+          21177,
+          21177,
+          21177,
+          21152,
+          21140,
+          21141,
+          21141
+        ],
+        "max_run": 3,
+        "mean_forced_flip_rate": 0.008673080626658964,
+        "total_forced_flips": 5179,
+        "total_violations_avoided": 5179
+      },
+      {
+        "forced_flips_per_cycle": [
+          0,
+          0,
+          0,
+          1305,
+          960,
+          960,
+          981,
+          973
+        ],
+        "violations_avoided_by_perm": [
+          0,
+          0,
+          0,
+          1305,
+          960,
+          960,
+          981,
+          973
+        ],
+        "pre_flip_repeats_per_cycle": [
+          0,
+          21177,
+          21177,
+          21177,
+          21152,
+          21140,
+          21141,
+          21141
+        ],
+        "max_run": 3,
+        "mean_forced_flip_rate": 0.008673080626658964,
+        "total_forced_flips": 5179,
+        "total_violations_avoided": 5179
+      }
+    ]
+  },
+  "library_statistics": {
+    "unique_library_codes": 84919,
+    "average_reuse": 1.0045455080723984
+  },
+  "spatial_similarity": {
+    "neighbor_hamming_distances_quadtree_only": {
+      "mean": 5.094879518072289,
+      "std": 4.162914039316344,
+      "min": 0,
+      "max": 24,
+      "sample_size": 1992
+    }
+  },
+  "quality_metrics": {
+    "all_unique": true,
+    "no_duplicates": true
+  }
+}

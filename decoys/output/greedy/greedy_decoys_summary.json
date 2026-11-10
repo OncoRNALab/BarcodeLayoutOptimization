@@ -1,0 +1,11 @@
+{
+  "real": "../../1in1/layout_235x363_randombarcodes_opt.txt",
+  "decoy_pool": "../../decoy_layouts/barcodes/1in1/greedy_decoybar_1in1_column_major.txt",
+  "seed": 2026,
+  "n_real": 85305,
+  "n_pool": 85305,
+  "n_decoys": 42652,
+  "decoy_to_real": 0.4999941386788582,
+  "decoy_fraction_of_whitelist": 0.3333307282915354,
+  "whitelist_order": "real barcodes in layout (column-major) order, then decoys in pool order"
+}

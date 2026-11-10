@@ -1,0 +1,25 @@
+{
+  "array": {
+    "rows": 118,
+    "cols": 182,
+    "total_spots": 21476
+  },
+  "block": {
+    "rows": 4,
+    "cols": 4,
+    "size": 16
+  },
+  "barcodes": {
+    "bar_1_file": "/user/gent/446/vsc44685/ScratchVO_dir/layout_opt/Dual_barcodes/randomsets/Barcodes_34K36nt_set1_last18.txt",
+    "bar_2_file": "/user/gent/446/vsc44685/ScratchVO_dir/layout_opt/Dual_barcodes/randomsets/Barcodes_34K36nt_set1_last18.txt",
+    "bar_1_length": 18,
+    "bar_2_length": 18,
+    "total_length": 36
+  },
+  "output": {
+    "layout_file": "layout_118x182_dual_set2_decoy.csv",
+    "barcode_file": "barcodes_118x182_dual_set2_decoy.txt",
+    "stats_file": "stats_118x182_dual_set2_decoy.json"
+  },
+  "description": "Dual barcode layout for 118x182 array - Set 2 using second half of bar_1in2 library"
+}

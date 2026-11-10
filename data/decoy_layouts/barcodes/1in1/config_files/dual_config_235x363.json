@@ -1,0 +1,42 @@
+{
+    "description": "Configuration for dual barcode layout generation - 235×363 array",
+    "array_dimensions": {
+        "rows": 235,
+        "columns": 363,
+        "total_spots": 85305,
+        "comment": "235 rows × 363 columns = 85,305 spots"
+    },
+    "grid_configuration": {
+        "block_size": 4,
+        "blocks_per_row": 59,
+        "blocks_per_column": 91,
+        "total_blocks": 5369,
+        "comment": "Each 4×4 block shares one bar_1, with 16 unique bar_2 assignments"
+    },
+    "barcode_configuration": {
+        "barcode_file": "/user/gent/446/vsc44685/ScratchVO_dir/layout_opt/inhouse_barcodes/bar_1in1_column_major_last18.txt",
+        "barcode_length_per_segment": 18,
+        "full_barcode_length": 36,
+        "total_barcodes_available": 85305,
+        "comment": "Each final barcode is bar_1(18nt) + bar_2(18nt) = 36nt total"
+    },
+    "algorithm": {
+        "method": "dual_barcodes",
+        "strategy": "block_wise_assignment",
+        "bar_1_assignment": "Each 4×4 block receives one shared bar_1 barcode",
+        "bar_2_assignment": "Each position within a block receives a unique bar_2 barcode",
+        "uniqueness_constraint": "Global - no bar_1+bar_2 combination repeats across entire array"
+    },
+    "output": {
+        "layout_file": "/user/gent/446/vsc44685/ScratchVO_dir/layoutOPT_results/decoy_layouts/barcodes/layout_235x363_dual_4x4.csv",
+        "visualization_file": "/user/gent/446/vsc44685/ScratchVO_dir/layoutOPT_results/decoy_layouts/barcodes/layout_235x363_dual_4x4_visualization.png",
+        "statistics_file": "/user/gent/446/vsc44685/ScratchVO_dir/layoutOPT_results/decoy_layouts/barcodes/layout_235x363_dual_4x4_stats.json"
+    },
+    "random_seed": 42,
+    "notes": [
+        "Array has 85,305 spots arranged in 235 rows and 363 columns",
+        "Organized into 5,369 blocks of 4×4 (some edge blocks have <16 spots)",
+        "85,305 barcodes available - sufficient for the required combinations",
+        "Each barcode segment is 18nt, final concatenated barcode is 36nt"
+    ]
+}

@@ -1,0 +1,175 @@
+{
+  "generation_timestamp": "2026-04-20T21:44:56.240262",
+  "configuration": {
+    "array": {
+      "rows": 118,
+      "cols": 182
+    },
+    "quadtree": {
+      "n_bits_x": 8,
+      "n_bits_y": 7,
+      "total_bits": 15,
+      "triplets": 3,
+      "quadtree_length_nt": 24
+    },
+    "rll": {
+      "max_run": 3
+    },
+    "library": {
+      "file": "/user/gent/446/vsc44685/ScratchVO_dir/layout_opt/inhouse_barcodes/bar_1in1_column_major_first12.txt",
+      "length_nt": 12
+    },
+    "barcode": {
+      "total_length_nt": 36,
+      "description": "24nt quadtree + 12nt library = 36nt hybrid"
+    },
+    "random_seed": 1,
+    "output": {
+      "directory": "output_118x182_hybrid_set1_decoy",
+      "layout_file": "layout_118x182_hybrid_set1.csv",
+      "barcodes_file": "barcodes_118x182_hybrid_set1.txt",
+      "stats_file": "stats_118x182_hybrid_set1.json"
+    }
+  },
+  "layout_statistics": {
+    "total_spots": 21476,
+    "unique_combined_barcodes": 21476,
+    "total_barcode_length": 36,
+    "quadtree_length": 24,
+    "library_length": 12,
+    "grid_dimensions": {
+      "rows": 118,
+      "cols": 182
+    }
+  },
+  "quadtree_statistics": {
+    "unique_quadtree_codes": 21027,
+    "rll_stats": [
+      {
+        "forced_flips_per_cycle": [
+          0,
+          0,
+          0,
+          308,
+          180,
+          208,
+          212,
+          220
+        ],
+        "violations_avoided_by_perm": [
+          0,
+          0,
+          0,
+          308,
+          180,
+          208,
+          212,
+          220
+        ],
+        "pre_flip_repeats_per_cycle": [
+          0,
+          5369,
+          5220,
+          5520,
+          5242,
+          5546,
+          5245,
+          5549
+        ],
+        "max_run": 3,
+        "mean_forced_flip_rate": 0.007503392491285954,
+        "total_forced_flips": 1128,
+        "total_violations_avoided": 1128
+      },
+      {
+        "forced_flips_per_cycle": [
+          0,
+          0,
+          0,
+          308,
+          180,
+          208,
+          212,
+          220
+        ],
+        "violations_avoided_by_perm": [
+          0,
+          0,
+          0,
+          308,
+          180,
+          208,
+          212,
+          220
+        ],
+        "pre_flip_repeats_per_cycle": [
+          0,
+          5369,
+          5220,
+          5520,
+          5242,
+          5546,
+          5245,
+          5549
+        ],
+        "max_run": 3,
+        "mean_forced_flip_rate": 0.007503392491285954,
+        "total_forced_flips": 1128,
+        "total_violations_avoided": 1128
+      },
+      {
+        "forced_flips_per_cycle": [
+          0,
+          0,
+          0,
+          308,
+          180,
+          208,
+          212,
+          220
+        ],
+        "violations_avoided_by_perm": [
+          0,
+          0,
+          0,
+          308,
+          180,
+          208,
+          212,
+          220
+        ],
+        "pre_flip_repeats_per_cycle": [
+          0,
+          5369,
+          5220,
+          5520,
+          5242,
+          5546,
+          5245,
+          5549
+        ],
+        "max_run": 3,
+        "mean_forced_flip_rate": 0.007503392491285954,
+        "total_forced_flips": 1128,
+        "total_violations_avoided": 1128
+      }
+    ]
+  },
+  "library_statistics": {
+    "unique_library_codes": 21459,
+    "average_reuse": 1.000792208397409
+  },
+  "spatial_similarity": {
+    "neighbor_hamming_distances_quadtree_only": {
+      "mean": 6.284130982367758,
+      "std": 4.044696756477703,
+      "min": 0,
+      "max": 21,
+      "sample_size": 1985
+    }
+  },
+  "quality_metrics": {
+    "all_unique": true,
+    "no_duplicates": true
+  }
+}

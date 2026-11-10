@@ -1,0 +1,39 @@
+{
+  "generation_timestamp": "2026-01-15T12:19:25.976432",
+  "set_number": 1,
+  "configuration": {
+    "array": {
+      "rows": 118,
+      "cols": 182,
+      "total_spots": 21476
+    },
+    "block": {
+      "rows": 4,
+      "cols": 4,
+      "size": 16
+    },
+    "barcodes": {
+      "bar_1_file": "../inhouse_barcodes/bar_1in2_first18_set1.txt",
+      "bar_2_file": "../inhouse_barcodes/bar_1in2_first18_set1.txt",
+      "bar_1_length": 18,
+      "bar_2_length": 18,
+      "total_length": 36
+    },
+    "output": {
+      "layout_file": "layout_118x182_dual_set1.csv",
+      "barcode_file": "barcodes_118x182_dual_set1.txt",
+      "stats_file": "stats_118x182_dual_set1.json"
+    },
+    "description": "Dual barcode layout for 118x182 array - Set 1 using first half of bar_1in2 library"
+  },
+  "results": {
+    "total_spots": 21476,
+    "total_barcodes": 21476,
+    "unique_barcodes": 21476,
+    "barcode_length": 36,
+    "n_blocks": 1380,
+    "unique_bar_1": 1380,
+    "unique_bar_2": 13639,
+    "all_unique": true
+  }
+}

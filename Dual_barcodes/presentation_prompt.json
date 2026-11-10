@@ -1,0 +1,15 @@
+{
+    "context": "the present project includes 3 methods for generating spatial barcodes for DNA in-situ transcriptomics arrays. The methods are: 1) Dual Barcode, 2) Hybrid Quadtree, and 3) Zipcodes. The project is a research project and the goal is to generate the best spatial barcodes for DNA in-situ transcriptomics arrays.",
+    "aim": "make a powerpoint presentation to explain the 3 methods and their advantages and disadvantages",
+    "specifics": [
+        "the presentation should include the problem statement: high synthesis error rate due to UV light scattering and the need to minimize the number of synthesis errors fo spatial transcriptomics applications",
+        "we have synthesized arrays with 36nt barcodes long, and the full density and half-density (checkerboard) layouts. Next we sequenced the arrays and compared them based on the number of reads per barcode. We found that the zip codes method has the highest number of reads per barcode, all methods with hiogh precision above 99%. However the zip codes showed a spatial pattern, with some rows and columns with considerably lower read counts than others.",
+        "we tested 4 methods:Greedy, Dual Barcode (18nt+18nt), quandrant tree (hybrid 12nt+12nt+12nt) and Zipcodes (18nt+18nt, no separator). We found that the Greedy + 2-OPT method had the lowest number of synthesis errors. However the Greedy method had the highest number of reads per barcode.",
+    ],
+    "tasks": [
+        "read the summary text in the manuscript.txt file",
+        "read the readme.md files inside each of the folders: Dual_barcodes, Quadtree, and Zipcodes, to undesrtand the methods and their implementation",
+        "read the configs corresponding to the 235x363 design, to undesrtand the design parameters",
+        "make a plan to generate the presentation file, with the content of each slide, the order of the slides, and the speech for each slide"
+    ]
+}

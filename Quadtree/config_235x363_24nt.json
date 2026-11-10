@@ -1,0 +1,41 @@
+{
+    "description": "Configuration for quadtree barcode layout generation - 235×363 array",
+    "array_dimensions": {
+        "rows": 235,
+        "columns": 363,
+        "total_spots": 85305,
+        "comment": "235 rows × 363 columns = 85,305 spots"
+    },
+    "quadtree_configuration": {
+        "method": "repeated_quadtree",
+        "segment_length": 8,
+        "n_repeats": 3,
+        "total_barcode_length": 24,
+        "comment": "3 segments of 8nt each = 24nt total"
+    },
+    "rll_configuration": {
+        "max_run": 3,
+        "comment": "max_run=3 allows up to 3 consecutive bases (e.g., AAA ok, AAAA forbidden)"
+    },
+    "algorithm": {
+        "spatial_encoding": "Hierarchical quadtree subdivision",
+        "homopolymer_prevention": "Run-Length Limiting (RLL) with global permutation optimization",
+        "permutation_selection": "Evaluates all 24 possible quadrant-to-base mappings per cycle",
+        "forced_flips": "Deterministic fallback when best permutation still violates max_run"
+    },
+    "output": {
+        "layout_csv": "layout_235x363_quadtree_24nt.csv",
+        "barcodes_txt": "barcodes_235x363_quadtree_24nt.txt",
+        "statistics_json": "layout_235x363_quadtree_24nt_stats.json",
+        "column_major_ordering": true,
+        "comment": "Column-major ordering for array fabrication compatibility"
+    },
+    "random_seed": 42,
+    "notes": [
+        "Quadtree generates barcodes algorithmically - no input barcode library needed",
+        "Spatial coordinates determine barcode sequences",
+        "RLL algorithm prevents homopolymers during generation",
+        "Each cycle evaluates 21,476 spots globally to find optimal base assignment",
+        "Final barcodes maintain spatial similarity: adjacent spots have low Hamming distance"
+    ]
+}

@@ -1,0 +1,139 @@
+Light-directed photolithographic DNA synthesis enables the fabrication of ultra–highdensity
+capture arrays but is intrinsically prone to synthesis errors. A major source
+of error arises from UV light scattering during deprotection cycles, which can partially
+remove the protective groups of neighboring features. As a consequence, nucleotides
+may be incorrectly incorporated at adjacent spots, leading predominantly to insertion
+errors. These effects become increasingly relevant as feature size decreases and interspot
+distances shrink. Therefore, in addition to barcode sequence design, the spatial
+arrangement of barcodes on the array surface represents a critical factor influencing overall
+synthesis fidelity.
+To mitigate this effect, I explored layout optimization strategies inspired by the work
+of Jatzkowski et al. [50], who formalized the problem as a combinatorial optimization task.
+In their framework, each barcode is represented by a binary synthesis schedule, where each
+bit corresponds to a photolithographic synthesis cycle and takes value 1 if the barcode is
+deprotected (i.e., synthesized) during that cycle. The objective is to minimize the number
+of instances in which a barcode undergoes synthesis while a neighboring barcode does not,
+as such differences increase the likelihood of cross-feature deprotection due to scattered
+UV light.
+The authors demonstrated that the resulting optimization problem is MaxSNP-hard;
+informally, it is as hard as the hardest problems in the MaxSNP class under standard
+approximation-preserving reductions. Unless P=NP, MaxSNP-hard problems admit no
+polynomial-time approximation scheme (PTAS), so no efficient algorithm can guarantee
+an arbitrarily close approximation to the optimum. This motivates the use of heuristic
+approaches. Their proposed solution consists of a greedy placement algorithm followed
+by a local-search refinement step. The greedy algorithm fills the array column by column.
+For each position, the eight neighboring features are identified and the Hamming distance
+between the synthesis schedule of each candidate barcode and those of the already assigned
+neighbors is computed. The barcode that minimizes the summed Hamming distance to
+its neighbors is selected for that position. To efficiently evaluate all remaining barcode
+candidates at each step, GPU acceleration is employed. Subsequently, a local-search
+procedure (2-OPT) iteratively swaps barcode pairs if the exchange reduces the global
+layout cost, defined as the sum of Hamming distances between synthesis schedules over
+all pairs of spatially adjacent features on the array.
+Implementation and evaluation. In this project, the greedy algorithm followed by
+2-OPT refinement was implemented and adapted to our barcode design framework. In
+all of our layout evaluations reported below, spatial barcodes were 36 nt total length.
+The starting barcode set was generated as described in Section 2.3.1 (Chapter 2, Computational
+challenges: Spatial barcode design for high-error-rate arrays): random 36-nt
+candidate sequences, drawn from an enlarged pool and retained after the filtering criteria
+stated there. Several modifications were introduced to ensure consistent and comparable
+synthesis schedule representations.
+First, a normalized synthesis encoding scheme was defined. In practice, naive synthesis
+schedules may differ in length depending on nucleotide composition, preventing direct
+Hamming distance comparison. To overcome this limitation, each barcode of length N
+was encoded using a fixed-length binary vector of 4×N bits. For each nucleotide position,
+a 4-bit one-hot representation was used (A, C, G, T), with exactly one bit set to 1. For
+example:
+ACTG -> 1000 0100 0001 0010
+AATG -> 1000 1000 0001 0010
+This encoding ensures uniform schedule length and enables consistent Hamming distance
+computation across all barcodes.
+Second, layout quality was quantified by computing the mean Hamming distance between
+each barcode and its eight immediate neighbors. This metric was evaluated for
+three configurations: (i) a random layout (baseline), (ii) after greedy optimization, and
+(iii) after greedy + 2-OPT refinement. This allowed direct measurement of cost reduction
+achieved by each optimization stage.
+Third, to assess whether similarity in synthesis schedules translates to sequence-level
+similarity, I additionally computed the Levenshtein distance between neighboring barcode
+sequences (rather than their synthesis encodings). This analysis provided insight into the
+relationship between photolithographic schedule similarity and oligonucleotide sequence
+similarity.
+Finally, spatial heatmaps were generated to visualize the mean Hamming and Levenshtein
+distances of each feature relative to its eight neighbors before and after optimization.
+These visualizations revealed the emergence of local clusters of barcodes with
+reduced schedule dissimilarity, consistent with the intended objective of minimizing crossfeature
+synthesis discrepancies
+Co-design of barcodes and layout. In contrast to post-hoc layout optimization of
+pre-designed barcode libraries, I explored alternative strategies that jointly design barcode
+sequences and spatial arrangements from first principles. These co-design approaches explicitly
+embed spatial information into the barcode structure itself, ensuring that sequence
+similarity correlates with physical proximity on the array. Three distinct algorithmic
+frameworks were developed and evaluated in silico.
+Dual barcodes (combinatorial clustering). This method partitions the array into
+regular spatial blocks (e.g., 4 × 4 spots) and encodes position using two 18-nt barcode
+components, concatenated to yield a 36-nt full barcode. The first component (bar_1 )
+serves as a block identifier, shared by all spots within the same spatial block. The second
+component (bar_2 ) provides a unique position identifier within each block. Both
+components are chosen from fixed, pre-computed 18-nt candidate libraries (sequences are
+not designed de novo during layout generation); assignments enforce global uniqueness
+of the concatenated barcode (bar_1 + bar_2 ). This architecture implies that all spots
+within a spatial block share the same bar_1 sequence, creating spatial clustering tolerant
+to synthesis errors affecting the block-level identifier. For a 118 × 182 layout (21,476
+features), each of the two input 18-nt libraries contained 21,476 candidate sequences, generated
+with the same random sampling and filtering procedure as the greedy barcode pool
+(Section 2.3.1), but using 18-nt segments for each component rather than a single 36-nt
+barcode.
+Quadtree (hierarchical position encoding). Inspired by spatial indexing structures,
+this method encodes the (row, column) coordinate of each spot through recursive
+subdivision of the array space. Each barcode position l corresponds to one level of the
+hierarchy: the coordinate is scaled to a binary space of 2L bins, and at each cycle, the
+most significant unprocessed bit from both row and column coordinates defines a quadrant
+index (0–3), which is mapped to a nucleotide (A, C, G, T). To prevent synthesis errors
+arising from homopolymer runs, a run-length limiting (RLL) algorithm is applied. For
+each cycle, a contingency table is constructed to count how many spots at risk of violating
+the maximum run constraint would be affected by each of the 24 possible permutations
+of the quadrant-to-nucleotide mapping. The permutation that minimizes violations is
+selected, and deterministic fallback rules enforce diversity when necessary. This encoding
+intrinsically ensures that Hamming distance between barcodes scales logarithmically with
+geometric distance on the array. A 36-nucleotide design was implemented using three
+rounds of 8 cycles plus 12 random nucleotides, evaluated on a 118 × 182 array (21,476
+features).
+Zipcodes (Gray code spatial gradients). Gray codes are binary sequences in
+which successive integers differ by exactly one bit. By independently applying Gray code
+encoding to row and column coordinates and translating each 2-bit pair into a single
+nucleotide (00 → A, 01 → C, 10 → G, 11 → T), this method guarantees that spatially
+adjacent spots differ by exactly one base in their position-encoding sequences. The final
+barcode is constructed by concatenating the row-encoded segment, an optional intersegment
+separator (e.g., “GGGG”), the column-encoded segment, and a random highdiversity
+sequence for sequencing discrimination. This architecture provides the smoothest
+spatial gradient among the tested methods: Hamming distance increases proportionally
+with Manhattan distance along the array axes. This design was evaluated on the same
+118 × 182 layout (21,476 features).
+To illustrate the distinct spatial synthesis patterns generated by each co-design strategy,
+Figure 6.3 shows the activation masks for a single representative photolithographic
+cycle across the different layout approaches. In random layout, deprotection events are
+uniformly distributed across the array surface. In contrast, the greedy-optimized layout
+exhibits small localized clusters of co-activated features, reflecting the algorithm’s tendency
+to group barcodes with similar synthesis schedules. The three co-design methods
+display their characteristic spatial structures: Dual barcodes produce compact 4×4 blocks
+corresponding to the spatial block size; Quadtree generates 16 large quadrants reflecting
+hierarchical subdivision of the array; and Zipcodes create vertical column-wise activation
+patterns resulting from the independent Gray coding of row and column coordinates.
+These activation patterns directly influence the susceptibility of each layout to UV light
+scattering and cross-feature contamination during synthesis.
+The implementation details of these co-design strategies are available in the associated
+repository (https://github.com/OncoRNALab/Layout_OPT).
+Future perspectives. All barcode designs and layout optimization strategies described
+above were generated and evaluated exclusively through computational simulation. Empirical
+validation through physical array fabrication and sequencing remains an essential
+next step. Future work will involve the photolithographic synthesis of arrays implementing
+each of the tested layout strategies—random layout (baseline), greedy + 2-OPT optimization,
+Dual barcodes, Quadtree, and Zipcodes—followed by sequencing-based characterization
+under controlled conditions. This will enable direct measurement of synthesis
+error rates, cross-feature contamination, and decoding performance in real experimental
+settings. Such empirical data will be critical for validating the predictive accuracy of
+the simulation framework and for identifying conditions under which co-design strategies
+provide measurable improvements in array quality and sequencing fidelity. Additionally,
+these experiments will inform refinements to both algorithmic design and photolithographic
+synthesis protocols, ultimately guiding the selection of optimal barcode-layout
+combinations for production-scale spatial transcriptomics arrays.

@@ -1,0 +1,120 @@
+{
+  "generation_timestamp": "2026-01-13T15:03:34.681214",
+  "configuration": {
+    "description": "Configuration for quadtree barcode layout generation - 235\u00d7363 array",
+    "array_dimensions": {
+      "rows": 235,
+      "columns": 363,
+      "total_spots": 85305,
+      "comment": "235 rows \u00d7 363 columns = 85,305 spots"
+    },
+    "quadtree_configuration": {
+      "method": "repeated_quadtree",
+      "segment_length": 8,
+      "n_repeats": 3,
+      "total_barcode_length": 24,
+      "comment": "3 segments of 8nt each = 24nt total"
+    },
+    "rll_configuration": {
+      "max_run": 3,
+      "comment": "max_run=3 allows up to 3 consecutive bases (e.g., AAA ok, AAAA forbidden)"
+    },
+    "algorithm": {
+      "spatial_encoding": "Hierarchical quadtree subdivision",
+      "homopolymer_prevention": "Run-Length Limiting (RLL) with global permutation optimization",
+      "permutation_selection": "Evaluates all 24 possible quadrant-to-base mappings per cycle",
+      "forced_flips": "Deterministic fallback when best permutation still violates max_run"
+    },
+    "output": {
+      "layout_csv": "layout_235x363_quadtree_24nt.csv",
+      "barcodes_txt": "barcodes_235x363_quadtree_24nt.txt",
+      "statistics_json": "layout_235x363_quadtree_24nt_stats.json",
+      "column_major_ordering": true,
+      "comment": "Column-major ordering for array fabrication compatibility"
+    },
+    "random_seed": 42,
+    "notes": [
+      "Quadtree generates barcodes algorithmically - no input barcode library needed",
+      "Spatial coordinates determine barcode sequences",
+      "RLL algorithm prevents homopolymers during generation",
+      "Each cycle evaluates 21,476 spots globally to find optimal base assignment",
+      "Final barcodes maintain spatial similarity: adjacent spots have low Hamming distance"
+    ]
+  },
+  "layout_statistics": {
+    "total_spots": 85305,
+    "unique_barcodes": 85305,
+    "barcode_length": 24,
+    "grid_dimensions": {
+      "rows": 235,
+      "cols": 363
+    }
+  },
+  "rll_statistics": [
+    {
+      "segment": 1,
+      "length": 8,
+      "max_run": 3,
+      "note": "Individual segment stats - see overall_stats for complete RLL metrics"
+    },
+    {
+      "segment": 2,
+      "length": 8,
+      "max_run": 3,
+      "note": "Individual segment stats - see overall_stats for complete RLL metrics"
+    },
+    {
+      "segment": 3,
+      "length": 8,
+      "max_run": 3,
+      "note": "Individual segment stats - see overall_stats for complete RLL metrics"
+    },
+    {
+      "overall": true,
+      "total_length": 24,
+      "forced_flips_per_cycle": [
+        0,
+        0,
+        0,
+        1305,
+        960,
+        960,
+        981,
+        973,
+        976,
+        975,
+        977,
+        980,
+        976,
+        977,
+        975,
+        975,
+        976,
+        976,
+        977,
+        975,
+        974,
+        977,
+        978,
+        978
+      ],
+      "total_forced_flips": 20801,
+      "mean_forced_flip_rate": 0.010601855745241499,
+      "total_violations_avoided": 20801,
+      "max_run": 3
+    }
+  ],
+  "spatial_similarity": {
+    "neighbor_hamming_distances": {
+      "mean": 9.8407835258664,
+      "std": 2.411937536694086,
+      "min": 4,
+      "max": 24,
+      "sample_size": 1991
+    }
+  },
+  "quality_metrics": {
+    "all_unique": true,
+    "no_duplicates": true
+  }
+}

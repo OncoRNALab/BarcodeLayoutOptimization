@@ -1,0 +1,114 @@
+{
+  "quadtree_segments": [
+    {
+      "forced_flips_per_cycle": [
+        0,
+        5369,
+        5270,
+        5167,
+        5155,
+        5165,
+        5158,
+        5149
+      ],
+      "violations_avoided_by_perm": [
+        0,
+        5369,
+        5270,
+        5167,
+        5155,
+        5165,
+        5158,
+        5149
+      ],
+      "pre_flip_repeats_per_cycle": [
+        0,
+        5369,
+        5270,
+        5167,
+        5155,
+        5165,
+        5158,
+        5149
+      ],
+      "max_run": 1,
+      "mean_forced_flip_rate": 0.24235026474735918,
+      "total_forced_flips": 36433,
+      "total_violations_avoided": 36433
+    },
+    {
+      "forced_flips_per_cycle": [
+        0,
+        5369,
+        5270,
+        5167,
+        5155,
+        5165,
+        5158,
+        5149
+      ],
+      "violations_avoided_by_perm": [
+        0,
+        5369,
+        5270,
+        5167,
+        5155,
+        5165,
+        5158,
+        5149
+      ],
+      "pre_flip_repeats_per_cycle": [
+        0,
+        5369,
+        5270,
+        5167,
+        5155,
+        5165,
+        5158,
+        5149
+      ],
+      "max_run": 1,
+      "mean_forced_flip_rate": 0.24235026474735918,
+      "total_forced_flips": 36433,
+      "total_violations_avoided": 36433
+    },
+    {
+      "forced_flips_per_cycle": [
+        0,
+        5369,
+        5270,
+        5167,
+        5155,
+        5165,
+        5158,
+        5149
+      ],
+      "violations_avoided_by_perm": [
+        0,
+        5369,
+        5270,
+        5167,
+        5155,
+        5165,
+        5158,
+        5149
+      ],
+      "pre_flip_repeats_per_cycle": [
+        0,
+        5369,
+        5270,
+        5167,
+        5155,
+        5165,
+        5158,
+        5149
+      ],
+      "max_run": 1,
+      "mean_forced_flip_rate": 0.24235026474735918,
+      "total_forced_flips": 36433,
+      "total_violations_avoided": 36433
+    }
+  ],
+  "mean_forced_flip_rate": 0.24235026474735918,
+  "total_forced_flips": 109299
+}

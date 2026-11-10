@@ -1,0 +1,14 @@
+{
+  "layout": "data/1in2/layout_1in2_dual_4x4.csv",
+  "library": "data/scripts/inhouse_barcodes/bar_1in1_column_major_first18.txt",
+  "seed": 2026,
+  "block_size": 4,
+  "n_blocks": 2730,
+  "n_real": 42471,
+  "n_decoys": 21236,
+  "decoy_to_real": 0.5000117727390455,
+  "decoy_fraction_of_whitelist": 0.33333856562073244,
+  "source_full_density": "data/1in1/layout_235x363_dual_4x4.csv",
+  "selection": "All barcodes from full-density Dual rows 0-116 (117 rows × 363 cols = 42471). Not a checkerboard of 4×4 blocks. Printer coordinates: y = col+4, x = 4+2*row (even col) or 5+2*row (odd col), so (x+y) is even.",
+  "decoy_rule": "Same as full-density Dual: keep each block's bar_1, add round(0.5 × n_real) extra bar_2 from the 18-nt library; 8 decoys per complete 16-spot block."
+}

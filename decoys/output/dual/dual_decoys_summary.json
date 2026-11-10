@@ -1,0 +1,11 @@
+{
+  "layout": "../../1in1/layout_235x363_dual_4x4.csv",
+  "library": "../../scripts/inhouse_barcodes/bar_1in1_column_major_first18.txt",
+  "seed": 2026,
+  "block_size": 4,
+  "n_blocks": 5369,
+  "n_real": 85305,
+  "n_decoys": 42652,
+  "decoy_to_real": 0.4999941386788582,
+  "decoy_fraction_of_whitelist": 0.3333307282915354
+}

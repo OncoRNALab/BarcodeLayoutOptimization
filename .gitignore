@@ -1,0 +1,61 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+.venv/
+venv/
+ENV/
+env/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Output files (optional - uncomment if you don't want to track these)
+# *.csv
+# *.txt
+# *.fastq
+# *.json
+# *.png
+# *.pdf
+
+# Simulated reads (regenerable, too large for git)
+*.fastq
+*.fastq.gz
+sim_reads/
+*_read_L36zip*.txt
+*_readL36zip*.txt
+
+# HPC scheduler logs
+*.e[0-9]*
+*.o[0-9]*
+slurm-*.out

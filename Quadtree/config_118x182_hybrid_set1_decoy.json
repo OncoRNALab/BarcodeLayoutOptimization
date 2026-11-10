@@ -1,0 +1,31 @@
+{
+  "array": {
+    "rows": 118,
+    "cols": 182
+  },
+  "quadtree": {
+    "n_bits_x": 8,
+    "n_bits_y": 7,
+    "total_bits": 15,
+    "triplets": 3,
+    "quadtree_length_nt": 24
+  },
+  "rll": {
+    "max_run": 3
+  },
+  "library": {
+    "file": "/user/gent/446/vsc44685/ScratchVO_dir/layout_opt/inhouse_barcodes/bar_1in1_column_major_first12.txt",
+    "length_nt": 12
+  },
+  "barcode": {
+    "total_length_nt": 36,
+    "description": "24nt quadtree + 12nt library = 36nt hybrid"
+  },
+  "random_seed": 1,
+  "output": {
+    "directory": "output_118x182_hybrid_set1_decoy",
+    "layout_file": "layout_118x182_hybrid_set1.csv",
+    "barcodes_file": "barcodes_118x182_hybrid_set1.txt",
+    "stats_file": "stats_118x182_hybrid_set1.json"
+  }
+}
