@@ -3,142 +3,57 @@
 Phase 2 — Generate block barcodes (bar_1) for the HSDB design.
 
 Runs the spatial_zipcodes axis-code generator on the block grid defined in
-the config file, then combines X (14nt) + Y (14nt) into a 28nt bar_1
-sequence per block.  The same script handles any array size by pointing it
-at a different config:
+the config file, then combines X + Y into a bar_1 sequence per block. The
+same script handles any array size by pointing it at a different config:
 
-  118×182 array  →  block_zipcode_config.json          (30×46  = 1,380 blocks)
-  253×363 array  →  block_zipcode_config_253x363.json  (64×91  = 5,824 blocks)
+  118×182 array  →  block_zipcode_config.json           (30×46 blocks)
+  235×363 array  →  block_zipcode_config_235x363.json   (59×91 blocks)
+  253×363 array  →  block_zipcode_config_253x363.json   (64×91 blocks)
 
-Spatial gradient property:
-  - Adjacent blocks (|Δrow|=1 or |Δcol|=1) differ by >= 4 bases in bar_1.
-  - Blocks 5+ steps apart differ by >= 16 bases.
-
-G-content post-filter (Idea 3):
-  - Any barcode with G > 25% has excess G positions swapped G→T.
-  - Each such swap changes Hamming distance to neighbors by at most 1,
-    which is within the tolerance of the spatial gradient.
+By default (and in the updated configs) axis codes are built in flip mode:
+each candidate is the preceding code with a few bits flipped, and G content
+and junction homopolymers are rejected inside the candidate loop. The old
+post-hoc G→T / homopolymer rewrites are gone; they broke the X+Y structure
+and the distance gradient.
 
 Outputs (written to --out-dir):
-  - bar1_barcodes_28nt.txt   : sequences in row-major block order (one per line)
+  - bar1_barcodes_28nt.txt   : sequences in row-major block order
   - bar1_codebook.csv        : block_row, block_col, bar_1
-  - bar1_qc_report.json      : per-barcode QC and distance statistics
+  - bar1_qc_report.json      : QC and distance statistics
+  - intermediate/axis_codes.json
 """
+
+from __future__ import annotations
 
 import argparse
 import json
 import sys
 from pathlib import Path
-from typing import List, Tuple, Dict, Any
+from typing import Any, Dict, List
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parent.parent
 ZIPCODES_DIR = REPO_ROOT / "Zipcodes"
 
-# Make the spatial_zipcodes package importable
 if str(ZIPCODES_DIR) not in sys.path:
     sys.path.insert(0, str(ZIPCODES_DIR))
 
-from spatial_zipcodes.config import load_config
-from spatial_zipcodes.axis_code_generator import generate_axis_codes, hamming_distance
+from spatial_zipcodes.axis_code_generator import generate_column_and_row_codes
 from spatial_zipcodes.bit_to_dna import BitToDNAEncoder
+from spatial_zipcodes.config import load_config
+from spatial_zipcodes.sequence_qc import (
+    calculate_g_content,
+    find_max_homopolymer,
+    summarize_junction_homopolymers,
+)
 
 
-# --------------------------------------------------------------------------
-# Constants
-# --------------------------------------------------------------------------
-
-# Block grid dimensions are read from the config file at runtime.
-# These are set as module-level defaults but overridden inside main().
-BAR1_LEN = 28                        # 14 nt X + 14 nt Y, no spacer
-G_MAX_FRACTION = 0.25                # Idea 3: G <= 25% per barcode
-
-
-# --------------------------------------------------------------------------
-# QC helpers (G content)
-# --------------------------------------------------------------------------
-
-def g_fraction(seq: str) -> float:
-    return seq.count("G") / len(seq)
-
-
-def reduce_g_content(seq: str, max_g_frac: float = G_MAX_FRACTION) -> Tuple[str, int]:
-    """
-    Replace excess G bases with T (minimal perturbation).
-    Returns (modified_seq, n_swaps).
-    """
-    max_g = int(max_g_frac * len(seq))
-    g_positions = [i for i, b in enumerate(seq) if b == "G"]
-    n_excess = len(g_positions) - max_g
-    if n_excess <= 0:
-        return seq, 0
-    bases = list(seq)
-    # Swap the last n_excess G positions to T (arbitrary choice, minimal bias)
-    for pos in g_positions[-n_excess:]:
-        bases[pos] = "T"
-    return "".join(bases), n_excess
-
-
-def max_homopolymer(seq: str) -> int:
-    if not seq:
-        return 0
-    max_run = cur = 1
-    for i in range(1, len(seq)):
-        cur = cur + 1 if seq[i] == seq[i - 1] else 1
-        max_run = max(max_run, cur)
-    return max_run
+def dna_hamming(a: str, b: str) -> int:
+    return sum(x != y for x, y in zip(a, b))
 
 
 def gc_fraction(seq: str) -> float:
     return (seq.count("G") + seq.count("C")) / len(seq)
-
-
-def break_homopolymers(
-    seq: str,
-    max_run: int = 3,
-    g_max_frac: float = G_MAX_FRACTION,
-) -> Tuple[str, int]:
-    """
-    Shorten homopolymer runs that exceed *max_run* by substituting a different
-    base at every (max_run+1)-th position of the run.
-
-    Substitution priority avoids G when possible (to respect G-content limit)
-    and avoids creating a new run of the same length:
-      A/T run → break with C  (adds GC, avoids G)
-      C/G run → break with A  (adds AT, avoids G)
-
-    Returns (modified_seq, n_substitutions).
-    """
-    bases = list(seq)
-    n_subs = 0
-    i = 0
-    while i < len(bases):
-        # Find end of current run
-        j = i
-        while j < len(bases) and bases[j] == bases[i]:
-            j += 1
-        run_len = j - i
-        if run_len > max_run:
-            run_base = bases[i]
-            # Pick a break base
-            if run_base in ("A", "T"):
-                break_base = "C"
-            else:  # C or G
-                break_base = "A"
-            # Insert break every (max_run) bases within the run
-            for k in range(i + max_run, j, max_run + 1):
-                bases[k] = break_base
-                n_subs += 1
-        i = j
-    return "".join(bases), n_subs
-
-
-# --------------------------------------------------------------------------
-# Distance validation
-# --------------------------------------------------------------------------
-
-def dna_hamming(a: str, b: str) -> int:
-    return sum(x != y for x, y in zip(a, b))
 
 
 def compute_spatial_distance_stats(
@@ -146,54 +61,57 @@ def compute_spatial_distance_stats(
     block_rows: int,
     block_cols: int,
 ) -> Dict[str, Any]:
-    """
-    Compute Hamming distance statistics between spatially adjacent and
-    non-adjacent block pairs.
-    """
-    adjacent_distances = []
-    far_distances = []
+    """DNA Hamming distances for adjacent blocks and blocks ≥5 steps apart."""
+    adjacent_distances: List[int] = []
+    far_distances: List[int] = []
 
     for br in range(block_rows):
         for bc in range(block_cols):
             idx = br * block_cols + bc
             seq = barcodes[idx]
 
-            # Check right neighbour
             if bc + 1 < block_cols:
-                n_idx = br * block_cols + (bc + 1)
-                d = dna_hamming(seq, barcodes[n_idx])
-                adjacent_distances.append(d)
-
-            # Check bottom neighbour
+                adjacent_distances.append(
+                    dna_hamming(seq, barcodes[br * block_cols + (bc + 1)])
+                )
             if br + 1 < block_rows:
-                n_idx = (br + 1) * block_cols + bc
-                d = dna_hamming(seq, barcodes[n_idx])
-                adjacent_distances.append(d)
+                adjacent_distances.append(
+                    dna_hamming(seq, barcodes[(br + 1) * block_cols + bc])
+                )
 
-            # Sample far neighbours (block-distance >= 5)
             for bc2 in range(bc + 5, min(bc + 15, block_cols)):
-                n_idx = br * block_cols + bc2
-                far_distances.append(dna_hamming(seq, barcodes[n_idx]))
+                far_distances.append(
+                    dna_hamming(seq, barcodes[br * block_cols + bc2])
+                )
             for br2 in range(br + 5, min(br + 15, block_rows)):
-                n_idx = br2 * block_cols + bc
-                far_distances.append(dna_hamming(seq, barcodes[n_idx]))
+                far_distances.append(
+                    dna_hamming(seq, barcodes[br2 * block_cols + bc])
+                )
 
     stats: Dict[str, Any] = {}
     if adjacent_distances:
         stats["adjacent_min"] = min(adjacent_distances)
-        stats["adjacent_mean"] = round(sum(adjacent_distances) / len(adjacent_distances), 2)
+        stats["adjacent_mean"] = round(
+            sum(adjacent_distances) / len(adjacent_distances), 2
+        )
         stats["adjacent_max"] = max(adjacent_distances)
     if far_distances:
         stats["far_min"] = min(far_distances)
         stats["far_mean"] = round(sum(far_distances) / len(far_distances), 2)
         stats["far_max"] = max(far_distances)
-
     return stats
 
 
-# --------------------------------------------------------------------------
-# Main
-# --------------------------------------------------------------------------
+def soft_stats(verification: Dict[str, Any]) -> Dict[str, Any]:
+    out: Dict[str, Any] = {}
+    for diff, stats in verification.get("soft_constraint_stats", {}).items():
+        out[str(diff)] = {
+            "target": stats["target"],
+            "actual_mean": round(float(stats["actual_mean_distance"]), 3),
+            "mean_abs_error": round(float(stats["mean_abs_error"]), 3),
+        }
+    return out
+
 
 def main() -> None:
     ap = argparse.ArgumentParser(
@@ -203,195 +121,196 @@ def main() -> None:
     ap.add_argument(
         "--config",
         default=str(SCRIPT_DIR / "block_zipcode_config.json"),
-        help="Path to Zipcode config JSON (default: block_zipcode_config.json next to script)",
+        help="Path to Zipcode config JSON",
     )
     ap.add_argument(
         "--out-dir",
         default=str(SCRIPT_DIR),
-        help="Output directory (default: same directory as this script)",
-    )
-    ap.add_argument(
-        "--no-g-filter",
-        action="store_true",
-        help="Skip G-content post-filter (for comparison)",
+        help="Output directory",
     )
     args = ap.parse_args()
 
     config_path = Path(args.config)
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
+    intermediate = out_dir / "intermediate"
+    intermediate.mkdir(parents=True, exist_ok=True)
 
-    # ------------------------------------------------------------------
-    # 1. Load config and derive block-grid dimensions
-    # ------------------------------------------------------------------
     print(f"Loading config from {config_path}", flush=True)
     config = load_config(config_path)
 
-    # Block grid dimensions come from the config's chip_geometry
     block_rows: int = config.chip_geometry.rows
     block_cols: int = config.chip_geometry.cols
-    n_blocks: int = block_rows * block_cols
+    n_blocks = block_rows * block_cols
+    g_max = config.sequence_qc.g_content_max
+    homo_max = config.sequence_qc.max_homopolymer_length
+    spacer = config.codebook.spacer_sequence or ""
+    enforce_junction = config.sequence_qc.reject_sequences_with_long_homopolymers
+    candidate_mode = config.axis_code.candidate_mode
+    flip_counts = tuple(config.axis_code.flip_counts)
+    require_tolerance = config.axis_code.require_tolerance
+
     print(f"Block grid: {block_rows}×{block_cols} = {n_blocks:,} blocks")
-
-    print(f"\n[Step 1] Generating X axis codes ({block_cols} blocks)...")
-    x_codes, x_verif = generate_axis_codes(
-        n_positions=block_cols,
-        bit_length=config.x_bit_length,
-        target_distances=config.error_correction.distances,
-        far_features_min_distance=config.error_correction.far_features_min_distance,
-        max_attempts_per_position=config.axis_code.max_attempts_per_position,
-        backtrack_depth=config.axis_code.backtrack_depth,
-        tolerance=config.axis_code.tolerance,
-        random_seed=config.axis_code.random_seed,
+    print(
+        f"Generation: mode={candidate_mode}, flip_counts={list(flip_counts)}, "
+        f"require_tolerance={require_tolerance}"
     )
-    print(f"  Generated {len(x_codes)} X codes ({len(x_codes[0])} bits each)")
-    print(f"  Hard constraint violations: {x_verif['hard_constraint_violations']}")
-
-    print(f"\n[Step 2] Generating Y axis codes ({block_rows} blocks)...")
-    y_codes, y_verif = generate_axis_codes(
-        n_positions=block_rows,
-        bit_length=config.y_bit_length,
-        target_distances=config.error_correction.distances,
-        far_features_min_distance=config.error_correction.far_features_min_distance,
-        max_attempts_per_position=config.axis_code.max_attempts_per_position,
-        backtrack_depth=config.axis_code.backtrack_depth,
-        tolerance=config.axis_code.tolerance,
-        random_seed=(config.axis_code.random_seed + 1
-                     if config.axis_code.random_seed is not None
-                     else None),
+    print(
+        f"Composition: G≤{g_max:.0%} per axis code, "
+        f"homopolymer≤{homo_max} nt"
+        f"{' (junction enforced)' if enforce_junction else ''}"
     )
-    print(f"  Generated {len(y_codes)} Y codes ({len(y_codes[0])} bits each)")
-    print(f"  Hard constraint violations: {y_verif['hard_constraint_violations']}")
 
-    # ------------------------------------------------------------------
-    # 2. Encode axis codes to DNA
-    # ------------------------------------------------------------------
-    print("\n[Step 3] Encoding to DNA sequences...")
     encoder = BitToDNAEncoder(
         scheme=config.bit_to_dna.scheme,
         mapping=config.bit_to_dna.mapping,
     )
-    x_seqs = [encoder.encode(code) for code in x_codes]
-    y_seqs = [encoder.encode(code) for code in y_codes]
-    print(f"  X sequences: {len(x_seqs[0])} nt each")
-    print(f"  Y sequences: {len(y_seqs[0])} nt each")
 
-    # ------------------------------------------------------------------
-    # 3. Combine X + Y into bar_1 barcodes (no spacer)
-    # ------------------------------------------------------------------
-    print("\n[Step 4] Combining X + Y into 28 nt bar_1 barcodes...")
+    print("\n[Step 1] Generating column and row codes...")
+    x_codes, y_codes, x_seqs, y_seqs, x_verif, y_verif = generate_column_and_row_codes(
+        n_columns=block_cols,
+        n_rows=block_rows,
+        x_bit_length=config.x_bit_length,
+        y_bit_length=config.y_bit_length,
+        target_distances=config.error_correction.distances,
+        far_features_min_distance=config.error_correction.far_features_min_distance,
+        encoder=encoder,
+        g_content_max=g_max,
+        max_homopolymer_length=homo_max,
+        spacer=spacer,
+        enforce_junction=enforce_junction,
+        max_attempts_per_position=config.axis_code.max_attempts_per_position,
+        backtrack_depth=config.axis_code.backtrack_depth,
+        tolerance=config.axis_code.tolerance,
+        random_seed=config.axis_code.random_seed,
+        candidate_mode=candidate_mode,
+        flip_counts=flip_counts,
+        require_tolerance=require_tolerance,
+    )
+    axis_nt = len(x_seqs[0])
+    bar1_len = 2 * axis_nt + len(spacer)
+    print(f"  X: {len(x_seqs)} × {axis_nt} nt")
+    print(f"  Y: {len(y_seqs)} × {axis_nt} nt")
+    print(
+        f"  Hard violations: X={x_verif['hard_constraint_violations']}, "
+        f"Y={y_verif['hard_constraint_violations']}"
+    )
+    print(
+        f"  Outside tolerance: X={x_verif['positions_outside_tolerance']}, "
+        f"Y={y_verif['positions_outside_tolerance']}"
+    )
+
+    with open(intermediate / "axis_codes.json", "w") as fh:
+        json.dump(
+            {
+                "x_codes": [list(code) for code in x_codes],
+                "y_codes": [list(code) for code in y_codes],
+                "x_sequences": x_seqs,
+                "y_sequences": y_seqs,
+            },
+            fh,
+        )
+
+    print(f"\n[Step 2] Combining into {bar1_len} nt bar_1 barcodes...")
     barcodes: List[str] = []
     for br in range(block_rows):
         for bc in range(block_cols):
-            bar1 = x_seqs[bc] + y_seqs[br]  # 14nt + 14nt = 28nt
-            barcodes.append(bar1)
+            barcodes.append(x_seqs[bc] + spacer + y_seqs[br])
 
-    assert len(barcodes) == n_blocks, f"Expected {n_blocks} barcodes, got {len(barcodes)}"
-    assert all(len(b) == BAR1_LEN for b in barcodes), "Not all barcodes are 28 nt"
+    assert len(barcodes) == n_blocks
+    assert all(len(b) == bar1_len for b in barcodes)
+    assert all(calculate_g_content(s) <= g_max + 1e-12 for s in x_seqs + y_seqs)
 
-    # ------------------------------------------------------------------
-    # 4. G-content post-filter
-    # ------------------------------------------------------------------
-    n_modified = 0
-    if not args.no_g_filter:
-        print(f"\n[Step 5] G-content post-filter (G <= {G_MAX_FRACTION:.0%} per barcode)...")
-        for i, bc_seq in enumerate(barcodes):
-            new_seq, n_swaps = reduce_g_content(bc_seq, G_MAX_FRACTION)
-            if n_swaps:
-                barcodes[i] = new_seq
-                n_modified += 1
-        print(f"  Modified {n_modified}/{n_blocks} barcodes "
-              f"({n_modified / n_blocks:.1%} had G > {G_MAX_FRACTION:.0%})")
-    else:
-        print("\n[Step 5] G-content post-filter skipped (--no-g-filter)")
+    # Full barcodes can exceed the per-axis G cap when both halves are near it.
+    g_values = [calculate_g_content(b) for b in barcodes]
+    n_g_fail = sum(1 for g in g_values if g > g_max)
+    if n_g_fail:
+        print(
+            f"  NOTE: {n_g_fail}/{n_blocks} full bar_1 barcodes exceed "
+            f"G {g_max:.0%} (axis halves are within the cap)."
+        )
 
-    # ------------------------------------------------------------------
-    # 5b. Homopolymer post-filter (applied to full 28nt bar_1)
-    # ------------------------------------------------------------------
-    max_homo_cfg = config.sequence_qc.max_homopolymer_length
-    n_hp_fixed = 0
-    print(f"\n[Step 5b] Homopolymer post-filter (max run <= {max_homo_cfg} nt)...")
-    for i, bc_seq in enumerate(barcodes):
-        if max_homopolymer(bc_seq) > max_homo_cfg:
-            new_seq, n_subs = break_homopolymers(bc_seq, max_run=max_homo_cfg)
-            barcodes[i] = new_seq
-            n_hp_fixed += 1
-    n_still_bad = sum(1 for b in barcodes if max_homopolymer(b) > max_homo_cfg)
-    print(f"  Fixed {n_hp_fixed} barcodes with homopolymer > {max_homo_cfg}")
-    if n_still_bad:
-        print(f"  WARNING: {n_still_bad} barcodes still exceed limit after fix",
-              file=sys.stderr)
+    junction = summarize_junction_homopolymers(
+        x_seqs, y_seqs, homo_max, spacer=spacer
+    )
+    print(
+        f"  Junction homopolymers: max={junction['max_junction_run']}, "
+        f"violations={junction['n_violations']}"
+    )
+    if junction["n_violations"]:
+        raise RuntimeError(
+            f"{junction['n_violations']} barcodes violate the junction "
+            f"homopolymer limit of {homo_max}"
+        )
 
-    # ------------------------------------------------------------------
-    # 6. Global uniqueness check
-    # ------------------------------------------------------------------
-    print("\n[Step 6] Validating global uniqueness...")
-    if len(set(barcodes)) != n_blocks:
-        duplicates = n_blocks - len(set(barcodes))
-        print(f"  WARNING: {duplicates} duplicate barcodes found!", file=sys.stderr)
-    else:
-        print(f"  OK — all {n_blocks} bar_1 barcodes are globally unique")
+    print("\n[Step 3] Validating uniqueness and X+Y structure...")
+    n_unique = len(set(barcodes))
+    if n_unique != n_blocks:
+        raise RuntimeError(f"{n_blocks - n_unique} duplicate bar_1 barcodes")
+    structure_ok = all(
+        barcodes[br * block_cols + bc] == x_seqs[bc] + spacer + y_seqs[br]
+        for br in range(block_rows)
+        for bc in range(block_cols)
+    )
+    if not structure_ok:
+        raise RuntimeError("X+Y structure broken")
+    print(f"  OK — {n_blocks:,} unique barcodes, X+Y structure intact")
 
-    # ------------------------------------------------------------------
-    # 6. Distance statistics
-    # ------------------------------------------------------------------
-    print("\n[Step 7] Computing spatial distance statistics...")
+    print("\n[Step 4] Spatial DNA distances...")
     dist_stats = compute_spatial_distance_stats(barcodes, block_rows, block_cols)
-    print(f"  Adjacent block Hamming: "
-          f"min={dist_stats.get('adjacent_min', '?')}  "
-          f"mean={dist_stats.get('adjacent_mean', '?')}  "
-          f"max={dist_stats.get('adjacent_max', '?')}")
-    print(f"  Far block Hamming (>=5 steps): "
-          f"min={dist_stats.get('far_min', '?')}  "
-          f"mean={dist_stats.get('far_mean', '?')}  "
-          f"max={dist_stats.get('far_max', '?')}")
+    print(
+        f"  Adjacent: min={dist_stats.get('adjacent_min')}  "
+        f"mean={dist_stats.get('adjacent_mean')}  "
+        f"max={dist_stats.get('adjacent_max')}"
+    )
+    print(
+        f"  Far (≥5): min={dist_stats.get('far_min')}  "
+        f"mean={dist_stats.get('far_mean')}  "
+        f"max={dist_stats.get('far_max')}"
+    )
 
-    # ------------------------------------------------------------------
-    # 7. Per-barcode QC summary
-    # ------------------------------------------------------------------
-    g_values = [g_fraction(b) for b in barcodes]
     gc_values = [gc_fraction(b) for b in barcodes]
-    hp_values = [max_homopolymer(b) for b in barcodes]
-    n_g_fail = sum(1 for g in g_values if g > G_MAX_FRACTION)
-    print(f"\n  G content:  mean={sum(g_values)/len(g_values):.3f}  "
-          f"max={max(g_values):.3f}  >25%: {n_g_fail}")
-    print(f"  GC content: mean={sum(gc_values)/len(gc_values):.3f}  "
-          f"range [{min(gc_values):.3f}, {max(gc_values):.3f}]")
+    hp_values = [find_max_homopolymer(b)[0] for b in barcodes]
+    print(
+        f"\n  G content:  mean={sum(g_values)/len(g_values):.3f}  "
+        f"max={max(g_values):.3f}  >{g_max:.0%}: {n_g_fail}"
+    )
+    print(
+        f"  GC content: mean={sum(gc_values)/len(gc_values):.3f}  "
+        f"range [{min(gc_values):.3f}, {max(gc_values):.3f}]"
+    )
     print(f"  Max homopolymer: {max(hp_values)}")
 
-    # ------------------------------------------------------------------
-    # 8. Export
-    # ------------------------------------------------------------------
-    # Plain text: one barcode per line, row-major (block_row 0 first)
     txt_path = out_dir / "bar1_barcodes_28nt.txt"
     with open(txt_path, "w") as fh:
         for seq in barcodes:
             fh.write(seq + "\n")
     print(f"\nWrote barcodes       → {txt_path}")
 
-    # CSV with block coordinates
     csv_path = out_dir / "bar1_codebook.csv"
     with open(csv_path, "w") as fh:
         fh.write("block_row,block_col,bar_1\n")
         for br in range(block_rows):
             for bc in range(block_cols):
-                idx = br * block_cols + bc
-                fh.write(f"{br},{bc},{barcodes[idx]}\n")
+                fh.write(f"{br},{bc},{barcodes[br * block_cols + bc]}\n")
     print(f"Wrote codebook CSV   → {csv_path}")
 
-    # QC report
     qc_path = out_dir / "bar1_qc_report.json"
     qc_report = {
         "n_blocks": n_blocks,
         "block_grid": f"{block_rows}x{block_cols}",
-        "bar1_length_nt": BAR1_LEN,
-        "n_globally_unique": len(set(barcodes)),
-        "g_filter_applied": not args.no_g_filter,
-        "n_modified_by_g_filter": n_modified,
+        "bar1_length_nt": bar1_len,
+        "axis_length_nt": axis_nt,
+        "n_globally_unique": n_unique,
+        "x_y_structure_intact": True,
+        "candidate_mode": candidate_mode,
+        "flip_counts": list(flip_counts),
+        "require_tolerance": require_tolerance,
+        "g_content_max_per_axis": g_max,
         "g_content": {
             "mean": round(sum(g_values) / len(g_values), 4),
             "max": round(max(g_values), 4),
-            "n_above_25pct": n_g_fail,
+            "n_above_cap": n_g_fail,
         },
         "gc_content": {
             "mean": round(sum(gc_values) / len(gc_values), 4),
@@ -399,16 +318,20 @@ def main() -> None:
             "max": round(max(gc_values), 4),
         },
         "max_homopolymer": int(max(hp_values)),
+        "junction_homopolymers": junction,
         "spatial_hamming_distance": dist_stats,
         "axis_code_generation": {
             "x_hard_violations": x_verif["hard_constraint_violations"],
             "y_hard_violations": y_verif["hard_constraint_violations"],
+            "x_outside_tolerance": x_verif["positions_outside_tolerance"],
+            "y_outside_tolerance": y_verif["positions_outside_tolerance"],
+            "x_soft_stats": soft_stats(x_verif),
+            "y_soft_stats": soft_stats(y_verif),
         },
     }
     with open(qc_path, "w") as fh:
         json.dump(qc_report, fh, indent=2)
     print(f"Wrote QC report      → {qc_path}")
-
     print("\nDone.")
 
 

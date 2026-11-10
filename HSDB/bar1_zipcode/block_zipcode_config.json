@@ -16,11 +16,22 @@
   },
   "error_correction": {
     "type": "edit_distance",
-    "distances": [4, 8, 12, 16],
-    "far_features_min_distance": 16
+    "distances": [
+      4,
+      8,
+      12,
+      16
+    ],
+    "far_features_min_distance": 12
   },
   "bit_to_dna": {
-    "scheme": "4-bits-per-base"
+    "scheme": "4-bits-per-base",
+    "mapping": {
+      "1000": "A",
+      "0100": "C",
+      "0010": "T",
+      "0001": "G"
+    }
   },
   "sequence_qc": {
     "gc_content_min": 0.4,
@@ -41,10 +52,20 @@
     "max_edit_distance_for_decoding": 4
   },
   "axis_code": {
-    "max_attempts_per_position": 50000,
-    "backtrack_depth": 10,
+    "max_attempts_per_position": 10000,
+    "backtrack_depth": 5,
     "random_seed": 42,
-    "tolerance": 0.5
+    "tolerance": 0.5,
+    "candidate_mode": "flip",
+    "flip_counts": [
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "require_tolerance": true
   },
   "x_bit_length": 28,
   "y_bit_length": 28

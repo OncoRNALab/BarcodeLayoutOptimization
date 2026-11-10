@@ -23,7 +23,7 @@ All methods are first-class, and none are archived. Three were printed and appea
 | `Zipcodes/` | Zipcodes: [column code][row code] | Printed at full density (manuscript) |
 | *(not in this repo)* | Greedy + 2-OPT (BarLay, GPU; third-party baseline) | Printed at full density (manuscript). The algorithm belongs to a **separate repository** that was not developed in this project; only its printed layout and decoy pool are kept here |
 | `Quadtree/` | Hierarchical quadtree + RLL, hybrid 24 nt + 12 nt | Layouts exist; printed variant `data/1in1/layout_235x363_quadtree_8x3_12nt.*`; **excluded from the manuscript** |
-| `HSDB/` | Hierarchical Spatial Dual Barcodes (28-nt Zipcode bar_1 + 8-nt bar_2, G ≤ 25%) | Designed, not printed; see `IMPROVEMENT_PLAN.md`, `SummaryNewDesigns.md` |
+| `HSDB/` | Hierarchical Spatial Dual Barcodes (28-nt Zipcode bar_1 + 8-nt bar_2, G ≤ 25%) | Designed, not printed. bar_1 now uses flip-mode Zipcodes with G/junction enforced in the candidate loop (see below) |
 | `inhouse_barcodes/` | Random barcode libraries (filtered random 36-nt pool and its 12/18-nt prefixes and suffixes) | Input for Dual, Quadtree and decoys |
 | `decoys/` | Structure-matched decoy generation + QC | Used for every manuscript precision estimate |
 | `figures/` | Early 118×182 schematic figures | Historical |
@@ -80,6 +80,24 @@ Both designs use seed 42, the printed bit mapping (00→A, 01→C, 10→T, 11→
 | Row codes equal to a column code | 12 | 0 |
 
 Distances are in **bits**, and each base holds 2 bits. A bit distance d changes between d/2 bases (both bits of the same bases) and d bases (one bit per base), usually close to d. To control the difference in bases directly, the soft-constraint score would have to be computed on the DNA sequences instead.
+
+### HSDB (Hierarchical Spatial Dual Barcodes)
+- **Structure:** bar_1 (28 nt = 14 nt column + 14 nt row Zipcodes on the **block** grid) + bar_2 (8 nt spot ID, 16 codes reused in every 4×4 block) = 36 nt.
+- **bar_1 generator:** `HSDB/bar1_zipcode/generate_block_barcodes.py`. It calls `generate_column_and_row_codes` from `Zipcodes/`.
+  - **Was broken:** candidates were random 28-bit codes; G ≤ 25% and homopolymers were applied afterwards by rewriting finished barcodes (G→T, forced substitutions). That broke the X+Y structure and the distance gradient (adjacent DNA mean 6.6, far min 1).
+  - **Fixed:** `candidate_mode: "flip"`, `require_tolerance: true`, G and junction homopolymers rejected in the candidate loop. No post-hoc rewrite. QC asserts uniqueness and intact X+Y structure.
+- **bar_2:** already enforced G ≤ 20% and homopolymer ≤ 3 during selection (`bar2_library/generate_spot_barcodes.py`).
+- **Configs (all flip mode, printed bit mapping):**
+
+| Array | Config | Block grid | Targets (bits) | Far min (bits) |
+|---|---|---|---|---|
+| 118×182 | `block_zipcode_config.json` | 30×46 | 4, 8, 12, 16 | 12 (was 16; 16 failed under the G cap) |
+| 235×363 | `block_zipcode_config_235x363.json` | 59×91 | 2, 4, 6, 8 | 8 |
+| 253×363 | `block_zipcode_config_253x363.json` | 64×91 | 2, 4, 6, 8 | 8 |
+| 295×363 extra | `block_zipcode_config_253x363_extra.json` | 85×91 | 2, 4, 6, 8 | 8 |
+
+- **Regenerated 235×363:** `HSDB/bar1_zipcode/235x363/` and `HSDB/outputs/235x363/`. Soft targets hit exactly (2/4/6/8 bits). Adjacent DNA mean 1.9 bases; combined G max 19%; bar_1 homopolymers ≤ 3. Combined barcodes can still reach homopolymer 5 at the bar_1/bar_2 junction.
+- **Regenerated 118×182 bar_1:** `HSDB/bar1_zipcode/118x182/`. Soft targets 4/8/12/16 hit exactly; adjacent DNA mean 3.7 bases.
 
 ### Greedy + 2-OPT (printed baseline; separate repository)
 Greedy + 2-OPT is a third-party method (BarLay, Jatzkowski et al. 2024) used as the baseline. Its code lives in its own repository (local clones: `~/Documents/Barlay_new/BarLay`, `~/Documents/layout_opt/BarLay`) and should not be added to or modified from this repo. This repo only consumes its output: the printed layout in `data/1in1/` and the second pool for decoys.
