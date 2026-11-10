@@ -386,6 +386,9 @@ def main() -> None:
                     help="Output directory")
     ap.add_argument("--seed", type=int, default=42,
                     help="Random seed for bar_2 permutation within blocks")
+    ap.add_argument("--max-homopolymer", type=int, default=3,
+                    help="Maximum allowed homopolymer in combined barcodes "
+                         "(junction-safe bar_2 assignment; default 3)")
     args = ap.parse_args()
 
     array_rows: int = args.array_rows
@@ -421,16 +424,19 @@ def main() -> None:
     # ------------------------------------------------------------------
     print(f"\nGenerating layout for {array_rows}×{array_cols} array "
           f"({block_rows}×{block_cols} blocks of {BLOCK_SIZE}×{BLOCK_SIZE})...")
-    spots = generate_layout(bar1_seqs, bar2_seqs,
-                            array_rows=array_rows, array_cols=array_cols,
-                            seed=args.seed)
+    spots = generate_layout(
+        bar1_seqs, bar2_seqs,
+        array_rows=array_rows, array_cols=array_cols,
+        seed=args.seed,
+        max_homopolymer_limit=args.max_homopolymer,
+    )
     print(f"  {len(spots):,} spots assigned")
 
     # ------------------------------------------------------------------
     # Validate
     # ------------------------------------------------------------------
     print("\nValidating layout...")
-    validate_layout(spots)
+    validate_layout(spots, max_homopolymer_limit=args.max_homopolymer)
 
     # ------------------------------------------------------------------
     # Statistics

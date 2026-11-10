@@ -88,15 +88,6 @@ def min_pairwise_hamming(seqs: List[str]) -> int:
 # Greedy selection
 # --------------------------------------------------------------------------
 
-def enumerate_candidates(length: int = BARCODE_LEN) -> List[str]:
-    """Return all k-mers that pass QC filters."""
-    return [
-        "".join(b)
-        for b in itertools.product(BASES, repeat=length)
-        if passes_qc("".join(b))
-    ]
-
-
 def greedy_select(candidates: List[str],
                   n: int,
                   min_dist: int) -> List[str]:
@@ -133,12 +124,36 @@ def main() -> None:
                     help=f"Barcode length in nt (default {BARCODE_LEN})")
     ap.add_argument("--stats-out", default=None,
                     help="Optional JSON file to write per-barcode statistics")
+    ap.add_argument("--g-max", type=float, default=0.20,
+                    help="Maximum G fraction (default 0.20; use 0 for no G)")
+    ap.add_argument("--max-homopolymer", type=int, default=3,
+                    help="Maximum homopolymer run length (default 3)")
+    ap.add_argument("--max-leading", type=int, default=MAX_LEADING_RUN,
+                    help=f"Maximum leading homopolymer (default {MAX_LEADING_RUN})")
+    ap.add_argument("--gc-min", type=float, default=0.40)
+    ap.add_argument("--gc-max", type=float, default=0.60)
     args = ap.parse_args()
 
     print(f"Enumerating all {args.length}-mers passing QC...", flush=True)
-    candidates = enumerate_candidates(args.length)
+
+    def _passes(seq: str) -> bool:
+        return passes_qc(
+            seq,
+            gc_min=args.gc_min,
+            gc_max=args.gc_max,
+            g_max=args.g_max,
+            max_homo=args.max_homopolymer,
+            max_leading=args.max_leading,
+        )
+
+    candidates = [
+        "".join(b)
+        for b in itertools.product(BASES, repeat=args.length)
+        if _passes("".join(b))
+    ]
     print(f"  {len(candidates):,} candidates pass QC "
-          f"(GC 40-60%, G<=20%, homopolymer<=3, leading run<={MAX_LEADING_RUN})")
+          f"(GC {args.gc_min:.0%}-{args.gc_max:.0%}, G<={args.g_max:.0%}, "
+          f"homopolymer<={args.max_homopolymer}, leading run<={args.max_leading})")
 
     # Try from requested min_hamming down to 4
     selected: List[str] = []

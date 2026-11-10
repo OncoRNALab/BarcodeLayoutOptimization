@@ -97,8 +97,9 @@ Distances are in **bits**, and each base holds 2 bits. A bit distance d changes 
 | 295×363 extra | `block_zipcode_config_253x363_extra.json` | 85×91 | 2, 4, 6, 8 | 8 |
 
 - **bar_1/bar_2 junction:** bar_2 leading runs are ≤ 1 nt. Row (Y) codes are generated with `downstream_start_runs` so their trailing run plus a bar_2 start stays ≤ 3. The layout assembler only assigns junction-safe bar_2 codes and checks the combined homopolymer.
-- **Regenerated 235×363:** `HSDB/bar1_zipcode/235x363/` and `HSDB/outputs/235x363/`. Soft targets hit exactly (2/4/6/8 bits). Adjacent DNA mean 1.9 bases; combined G max 19%; **combined homopolymers ≤ 3** (including the bar_1/bar_2 junction).
-- **Regenerated 118×182 bar_1:** `HSDB/bar1_zipcode/118x182/`. Soft targets 4/8/12/16 hit exactly; adjacent DNA mean 3.7 bases. Regenerate the layout with the new bar_2 library before use.
+- **Regenerated 235×363 (G ≤ 25%, targets 2/4/6/8):** `HSDB/bar1_zipcode/235x363/` and `HSDB/outputs/235x363/`. Soft targets hit exactly. Adjacent DNA mean 1.9 bases; combined G max 19%; combined homopolymers ≤ 3.
+- **Zero-G 235×363 (targets 4/6/8/10, far 10):** `HSDB/bar1_zipcode/235x363_g0_d4-10_far10/` and `HSDB/outputs/235x363_g0_d4-10_far10/`. Config `block_zipcode_config_235x363_g0_d4-10_far12.json` failed at far=12; far=10 works. Soft targets essentially met (Y exact; X offset-1 mean 3.96). **No G** in bar_1, bar_2 (`spot_barcodes_8nt_g0.txt`, min Hamming 4) or combined barcodes. Homopolymers ≤ 5. Adjacent DNA mean 3.6 bases.
+- **118×182 bar_1:** `HSDB/bar1_zipcode/118x182/`. Soft targets 4/8/12/16 hit exactly; adjacent DNA mean 3.7 bases.
 
 ### Greedy + 2-OPT (printed baseline; separate repository)
 Greedy + 2-OPT is a third-party method (BarLay, Jatzkowski et al. 2024) used as the baseline. Its code lives in its own repository (local clones: `~/Documents/Barlay_new/BarLay`, `~/Documents/layout_opt/BarLay`) and should not be added to or modified from this repo. This repo only consumes its output: the printed layout in `data/1in1/` and the second pool for decoys.

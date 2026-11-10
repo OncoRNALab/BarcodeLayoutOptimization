@@ -1,0 +1,135 @@
+{
+  "n_barcodes": 16,
+  "barcode_length": 8,
+  "min_hamming_distance": 4,
+  "barcodes": [
+    {
+      "idx": 0,
+      "seq": "ACAAACCC",
+      "gc_content": 0.5,
+      "g_fraction": 0.0,
+      "max_homopolymer": 3,
+      "leading_run": 1
+    },
+    {
+      "idx": 1,
+      "seq": "ACACCAAC",
+      "gc_content": 0.5,
+      "g_fraction": 0.0,
+      "max_homopolymer": 2,
+      "leading_run": 1
+    },
+    {
+      "idx": 2,
+      "seq": "ACCACACA",
+      "gc_content": 0.5,
+      "g_fraction": 0.0,
+      "max_homopolymer": 2,
+      "leading_run": 1
+    },
+    {
+      "idx": 3,
+      "seq": "ACCCACAA",
+      "gc_content": 0.5,
+      "g_fraction": 0.0,
+      "max_homopolymer": 3,
+      "leading_run": 1
+    },
+    {
+      "idx": 4,
+      "seq": "ACCCCTTT",
+      "gc_content": 0.5,
+      "g_fraction": 0.0,
+      "max_homopolymer": 4,
+      "leading_run": 1
+    },
+    {
+      "idx": 5,
+      "seq": "ACCTTCCT",
+      "gc_content": 0.5,
+      "g_fraction": 0.0,
+      "max_homopolymer": 2,
+      "leading_run": 1
+    },
+    {
+      "idx": 6,
+      "seq": "ACTCTCTC",
+      "gc_content": 0.5,
+      "g_fraction": 0.0,
+      "max_homopolymer": 1,
+      "leading_run": 1
+    },
+    {
+      "idx": 7,
+      "seq": "ACTTCTCC",
+      "gc_content": 0.5,
+      "g_fraction": 0.0,
+      "max_homopolymer": 2,
+      "leading_run": 1
+    },
+    {
+      "idx": 8,
+      "seq": "ATACCCCA",
+      "gc_content": 0.5,
+      "g_fraction": 0.0,
+      "max_homopolymer": 4,
+      "leading_run": 1
+    },
+    {
+      "idx": 9,
+      "seq": "ATCACCAC",
+      "gc_content": 0.5,
+      "g_fraction": 0.0,
+      "max_homopolymer": 2,
+      "leading_run": 1
+    },
+    {
+      "idx": 10,
+      "seq": "ATCCAACC",
+      "gc_content": 0.5,
+      "g_fraction": 0.0,
+      "max_homopolymer": 2,
+      "leading_run": 1
+    },
+    {
+      "idx": 11,
+      "seq": "CAAACACC",
+      "gc_content": 0.5,
+      "g_fraction": 0.0,
+      "max_homopolymer": 3,
+      "leading_run": 1
+    },
+    {
+      "idx": 12,
+      "seq": "CAACACAC",
+      "gc_content": 0.5,
+      "g_fraction": 0.0,
+      "max_homopolymer": 2,
+      "leading_run": 1
+    },
+    {
+      "idx": 13,
+      "seq": "CACAACCA",
+      "gc_content": 0.5,
+      "g_fraction": 0.0,
+      "max_homopolymer": 2,
+      "leading_run": 1
+    },
+    {
+      "idx": 14,
+      "seq": "CACCCAAA",
+      "gc_content": 0.5,
+      "g_fraction": 0.0,
+      "max_homopolymer": 3,
+      "leading_run": 1
+    },
+    {
+      "idx": 15,
+      "seq": "CACCTCTT",
+      "gc_content": 0.5,
+      "g_fraction": 0.0,
+      "max_homopolymer": 2,
+      "leading_run": 1
+    }
+  ]
+}
