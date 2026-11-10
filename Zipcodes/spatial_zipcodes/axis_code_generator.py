@@ -10,6 +10,13 @@ import random
 from typing import List, Dict, Tuple, Optional
 import numpy as np
 
+from .sequence_qc import (
+    calculate_g_content,
+    find_max_homopolymer,
+    max_right_edge_by_base,
+    terminal_run,
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -62,6 +69,12 @@ class AxisCodeGenerator:
         backtrack_depth: int = 5,
         tolerance: float = 0.5,
         random_seed: Optional[int] = None,
+        encoder=None,
+        g_content_max: Optional[float] = None,
+        max_homopolymer_length: Optional[int] = None,
+        spacer: str = "",
+        junction_role: Optional[str] = None,
+        partner_right_edge: Optional[Dict[str, int]] = None,
     ):
         """
         Initialize the axis code generator.
@@ -75,7 +88,42 @@ class AxisCodeGenerator:
             backtrack_depth: Number of positions to backtrack when stuck
             tolerance: Tolerance for soft constraint violations (fraction)
             random_seed: Random seed for reproducibility
+            encoder: Bit-to-DNA encoder. Required when a G cap or junction
+                budget is set. Composition is judged on the encoded sequence.
+            g_content_max: Maximum G fraction of the encoded axis sequence.
+                Candidates above this are rejected before any distance is scored.
+            max_homopolymer_length: Maximum junction homopolymer, in bases,
+                allowed on the concatenated barcode.
+            spacer: Bases inserted between the column code and the row code.
+            junction_role: "left" for the column code, "right" for the row code.
+                Left codes keep a free starting base for the other axis.
+                Right codes are rejected when their leading run, added to the
+                matching column-code edge, would exceed max_homopolymer_length.
+            partner_right_edge: For role "right", longest right-edge run of each
+                base across the already chosen column codes (spacer included).
         """
+        if g_content_max is not None and encoder is None:
+            raise ValueError("encoder is required when g_content_max is set")
+        if junction_role is not None and junction_role not in ("left", "right"):
+            raise ValueError(f"junction_role must be 'left' or 'right', got {junction_role!r}")
+        if junction_role is not None:
+            if encoder is None:
+                raise ValueError("encoder is required when junction_role is set")
+            if max_homopolymer_length is None or max_homopolymer_length < 1:
+                raise ValueError(
+                    "max_homopolymer_length must be a positive integer when "
+                    "junction_role is set"
+                )
+        if junction_role == "right" and partner_right_edge is None:
+            raise ValueError("partner_right_edge is required for junction_role 'right'")
+        if junction_role == "left" and not (spacer or "") and max_homopolymer_length < 2:
+            raise ValueError(
+                "max_homopolymer_length must be at least 2 when the spacer is empty, "
+                "so the column code can leave room for the row code"
+            )
+        if g_content_max is not None and not 0 <= g_content_max <= 1:
+            raise ValueError(f"g_content_max must be in [0, 1], got {g_content_max}")
+
         self.n_positions = n_positions
         self.bit_length = bit_length
         self.target_distances = target_distances
@@ -83,9 +131,20 @@ class AxisCodeGenerator:
         self.max_attempts = max_attempts_per_position
         self.backtrack_depth = backtrack_depth
         self.tolerance = tolerance
+        self.encoder = encoder
+        self.g_content_max = g_content_max
+        self.max_homopolymer_length = max_homopolymer_length
+        self.spacer = spacer or ""
+        self.junction_role = junction_role
+        self.partner_right_edge = partner_right_edge or {}
         
         self.rng = random.Random(random_seed)
         self.codes: List[List[int]] = []
+        self._right_edges: List[Tuple[str, int]] = []
+        self._blocked_counts = {base: 0 for base in "ACGT"}
+        self.rejected_for_g = 0
+        self.rejected_for_homopolymer = 0
+        self.rejected_for_junction = 0
         
         logger.info(
             f"Initialized AxisCodeGenerator: n={n_positions}, L={bit_length}, "
@@ -177,7 +236,81 @@ class AxisCodeGenerator:
         max_acceptable_error = (self.tolerance * max(self.target_distances)) ** 2
         
         return avg_sq_error <= max_acceptable_error
-    
+
+    def _passes_composition(self, candidate: List[int]) -> bool:
+        """
+        Reject a candidate whose DNA breaks a composition rule.
+
+        The G check runs before any Hamming distance is computed. Junction
+        budgets run next, still before distance scoring. The junction run
+        itself is measured later on the concatenated barcode; these budgets
+        keep that measurement inside the limit.
+        """
+        if self.encoder is None:
+            return True
+
+        dna = self.encoder.encode(candidate)
+        if self.g_content_max is not None:
+            if calculate_g_content(dna) > self.g_content_max:
+                self.rejected_for_g += 1
+                return False
+
+        if self.max_homopolymer_length is not None:
+            homo_len, _ = find_max_homopolymer(dna)
+            if homo_len > self.max_homopolymer_length:
+                self.rejected_for_homopolymer += 1
+                return False
+
+        if self.junction_role == "left":
+            base, length = terminal_run(dna + self.spacer, at_end=True)
+            limit = self.max_homopolymer_length
+            # An empty spacer has to leave one base of room, so a row code can
+            # start with that base and the junction run still fits. A spacer
+            # that already spends the whole budget cannot leave that room.
+            if length > self._max_left_edge() or (
+                length >= limit and self._blocks_last_start_base(base)
+            ):
+                self.rejected_for_junction += 1
+                return False
+        elif self.junction_role == "right":
+            base, length = terminal_run(dna, at_end=False)
+            edge = self.partner_right_edge.get(base, 0)
+            if edge > 0 and edge + length > self.max_homopolymer_length:
+                self.rejected_for_junction += 1
+                return False
+        return True
+
+    def _max_left_edge(self) -> int:
+        """Longest right-edge run a column code may contribute to the junction."""
+        limit = self.max_homopolymer_length
+        if not self.spacer:
+            return limit - 1
+        _, spacer_run = terminal_run(self.spacer, at_end=True)
+        if spacer_run >= limit:
+            return limit
+        return limit - 1
+
+    def _blocks_last_start_base(self, base: str) -> bool:
+        """True when accepting this edge would forbid every row-code start base."""
+        blocked = {b for b, count in self._blocked_counts.items() if count > 0}
+        return base not in blocked and len(blocked) == 3
+
+    def _remember_left_edge(self, candidate: List[int]) -> None:
+        if self.junction_role != "left":
+            return
+        base, length = terminal_run(self.encoder.encode(candidate) + self.spacer, at_end=True)
+        self._right_edges.append((base, length))
+        if length >= self.max_homopolymer_length:
+            self._blocked_counts[base] += 1
+
+    def _forget_left_edges(self, count: int) -> None:
+        if self.junction_role != "left" or count <= 0:
+            return
+        for base, length in self._right_edges[-count:]:
+            if length >= self.max_homopolymer_length:
+                self._blocked_counts[base] -= 1
+        del self._right_edges[-count:]
+
     def _generate_position(self, position: int) -> Optional[List[int]]:
         """
         Generate code for a single position.
@@ -193,7 +326,11 @@ class AxisCodeGenerator:
         
         for attempt in range(self.max_attempts):
             candidate = random_binary_code(self.bit_length, self.rng)
-            
+
+            # Composition before distances: a high-G code is never scored.
+            if not self._passes_composition(candidate):
+                continue
+
             if self._check_hard_constraints(candidate, position):
                 score = self._score_soft_constraints(candidate, position)
                 
@@ -226,6 +363,8 @@ class AxisCodeGenerator:
             RuntimeError: If unable to generate valid codes
         """
         self.codes = []
+        self._right_edges = []
+        self._blocked_counts = {base: 0 for base in "ACGT"}
         position = 0
         backtrack_count = 0
         max_backtracks = 100
@@ -240,6 +379,7 @@ class AxisCodeGenerator:
             
             if candidate is not None:
                 self.codes.append(candidate)
+                self._remember_left_edge(candidate)
                 position += 1
             else:
                 # Backtrack
@@ -259,6 +399,7 @@ class AxisCodeGenerator:
                 logger.warning(
                     f"Backtracking {backtrack_amount} positions from position {position}"
                 )
+                self._forget_left_edges(backtrack_amount)
                 self.codes = self.codes[:-backtrack_amount]
                 position -= backtrack_amount
         
@@ -343,6 +484,12 @@ def generate_axis_codes(
     backtrack_depth: int = 5,
     tolerance: float = 0.5,
     random_seed: Optional[int] = None,
+    encoder=None,
+    g_content_max: Optional[float] = None,
+    max_homopolymer_length: Optional[int] = None,
+    spacer: str = "",
+    junction_role: Optional[str] = None,
+    partner_right_edge: Optional[Dict[str, int]] = None,
 ) -> Tuple[List[List[int]], Dict[str, any]]:
     """
     Generate and verify axis codes.
@@ -359,6 +506,12 @@ def generate_axis_codes(
         backtrack_depth: Number of positions to backtrack when stuck
         tolerance: Tolerance for soft constraint violations
         random_seed: Random seed for reproducibility
+        encoder: Bit-to-DNA encoder used for composition checks
+        g_content_max: Maximum G fraction of each encoded axis sequence
+        max_homopolymer_length: Maximum junction homopolymer on the full barcode
+        spacer: Spacer inserted between the two axis sequences
+        junction_role: "left" (column) or "right" (row) junction budget
+        partner_right_edge: Right-edge runs of the column codes, for role "right"
         
     Returns:
         Tuple of (codes, verification_results)
@@ -372,9 +525,81 @@ def generate_axis_codes(
         backtrack_depth=backtrack_depth,
         tolerance=tolerance,
         random_seed=random_seed,
+        encoder=encoder,
+        g_content_max=g_content_max,
+        max_homopolymer_length=max_homopolymer_length,
+        spacer=spacer,
+        junction_role=junction_role,
+        partner_right_edge=partner_right_edge,
     )
     
     codes = generator.generate()
     verification = generator.verify_constraints()
     
     return codes, verification
+
+
+def generate_column_and_row_codes(
+    n_columns: int,
+    n_rows: int,
+    x_bit_length: int,
+    y_bit_length: int,
+    target_distances: List[int],
+    far_features_min_distance: int,
+    encoder,
+    g_content_max: float,
+    max_homopolymer_length: int,
+    spacer: str = "",
+    enforce_junction: bool = True,
+    max_attempts_per_position: int = 10000,
+    backtrack_depth: int = 5,
+    tolerance: float = 0.5,
+    random_seed: Optional[int] = None,
+) -> Tuple[List[List[int]], List[List[int]], List[str], List[str], Dict, Dict]:
+    """
+    Generate column codes, then row codes, with composition enforced.
+
+    G content is capped on each axis sequence inside the candidate loop.
+    When enforce_junction is true, column codes leave at least one legal
+    start base and row codes are rejected when they would extend a column
+    edge into a junction homopolymer longer than max_homopolymer_length.
+    """
+    shared = dict(
+        target_distances=target_distances,
+        far_features_min_distance=far_features_min_distance,
+        max_attempts_per_position=max_attempts_per_position,
+        backtrack_depth=backtrack_depth,
+        tolerance=tolerance,
+        encoder=encoder,
+        g_content_max=g_content_max,
+        random_seed=random_seed,
+    )
+    left = dict(shared)
+    if enforce_junction:
+        left.update(
+            max_homopolymer_length=max_homopolymer_length,
+            spacer=spacer or "",
+            junction_role="left",
+        )
+    x_codes, x_verification = generate_axis_codes(
+        n_positions=n_columns,
+        bit_length=x_bit_length,
+        **left,
+    )
+    x_sequences = [encoder.encode(code) for code in x_codes]
+
+    right = dict(shared)
+    if enforce_junction:
+        right.update(
+            max_homopolymer_length=max_homopolymer_length,
+            spacer=spacer or "",
+            junction_role="right",
+            partner_right_edge=max_right_edge_by_base(x_sequences, spacer or ""),
+        )
+    y_codes, y_verification = generate_axis_codes(
+        n_positions=n_rows,
+        bit_length=y_bit_length,
+        **right,
+    )
+    y_sequences = [encoder.encode(code) for code in y_codes]
+    return x_codes, y_codes, x_sequences, y_sequences, x_verification, y_verification

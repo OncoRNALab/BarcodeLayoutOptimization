@@ -12,9 +12,13 @@ from pathlib import Path
 import json
 
 from .config import load_config, save_config
-from .axis_code_generator import generate_axis_codes
+from .axis_code_generator import generate_column_and_row_codes
 from .bit_to_dna import BitToDNAEncoder, encode_codes_to_dna
-from .sequence_qc import validate_axis_sequences
+from .sequence_qc import (
+    calculate_g_content,
+    summarize_junction_homopolymers,
+    validate_axis_sequences,
+)
 from .codebook import build_codebook, export_codebook
 from .distance_analysis import analyze_axis_codes, AxisDistanceAnalyzer
 from .simulation import (
@@ -32,6 +36,37 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+def _reject_failed_composition(
+    x_sequences,
+    y_sequences,
+    g_content_max,
+    max_homopolymer_length,
+    spacer,
+    enforce_junction,
+):
+    """Stop when an axis code exceeds the G cap or a full barcode breaks the junction limit."""
+    x_g = max(calculate_g_content(seq) for seq in x_sequences)
+    y_g = max(calculate_g_content(seq) for seq in y_sequences)
+    if x_g > g_content_max or y_g > g_content_max:
+        logger.error(
+            "G content exceeds %.3f (X max %.3f, Y max %.3f)",
+            g_content_max, x_g, y_g,
+        )
+        sys.exit(1)
+
+    junction = summarize_junction_homopolymers(
+        x_sequences, y_sequences, max_homopolymer_length, spacer,
+    )
+    logger.info(
+        "Junction homopolymer on full barcodes: max %d nt, %d violations",
+        junction["max_junction_run"],
+        junction["n_violations"],
+    )
+    if junction["n_violations"] and enforce_junction:
+        logger.error("Junction homopolymer limit exceeded")
+        sys.exit(1)
+
+
 def cmd_generate_axis_codes(args):
     """Generate axis codes from configuration."""
     logger.info(f"Loading configuration from {args.config}")
@@ -40,30 +75,40 @@ def cmd_generate_axis_codes(args):
     output_dir = Path(args.output)
     output_dir.mkdir(parents=True, exist_ok=True)
     
-    # Generate X codes
-    logger.info("Generating X axis codes...")
-    x_codes, x_verification = generate_axis_codes(
-        n_positions=config.chip_geometry.cols,
-        bit_length=config.x_bit_length,
-        target_distances=config.error_correction.distances,
-        far_features_min_distance=config.error_correction.far_features_min_distance,
-        max_attempts_per_position=config.axis_code.max_attempts_per_position,
-        backtrack_depth=config.axis_code.backtrack_depth,
-        tolerance=config.axis_code.tolerance,
-        random_seed=config.axis_code.random_seed,
+    encoder = BitToDNAEncoder(
+        scheme=config.bit_to_dna.scheme,
+        mapping=config.bit_to_dna.mapping,
     )
-    
-    # Generate Y codes
-    logger.info("Generating Y axis codes...")
-    y_codes, y_verification = generate_axis_codes(
-        n_positions=config.chip_geometry.rows,
-        bit_length=config.y_bit_length,
-        target_distances=config.error_correction.distances,
-        far_features_min_distance=config.error_correction.far_features_min_distance,
-        max_attempts_per_position=config.axis_code.max_attempts_per_position,
-        backtrack_depth=config.axis_code.backtrack_depth,
-        tolerance=config.axis_code.tolerance,
-        random_seed=config.axis_code.random_seed,
+    logger.info(
+        "Generating axis codes with G content max %.2f",
+        config.sequence_qc.g_content_max,
+    )
+    x_codes, y_codes, x_sequences, y_sequences, x_verification, y_verification = (
+        generate_column_and_row_codes(
+            n_columns=config.chip_geometry.cols,
+            n_rows=config.chip_geometry.rows,
+            x_bit_length=config.x_bit_length,
+            y_bit_length=config.y_bit_length,
+            target_distances=config.error_correction.distances,
+            far_features_min_distance=config.error_correction.far_features_min_distance,
+            encoder=encoder,
+            g_content_max=config.sequence_qc.g_content_max,
+            max_homopolymer_length=config.sequence_qc.max_homopolymer_length,
+            spacer=config.codebook.spacer_sequence or "",
+            enforce_junction=config.sequence_qc.reject_sequences_with_long_homopolymers,
+            max_attempts_per_position=config.axis_code.max_attempts_per_position,
+            backtrack_depth=config.axis_code.backtrack_depth,
+            tolerance=config.axis_code.tolerance,
+            random_seed=config.axis_code.random_seed,
+        )
+    )
+    _reject_failed_composition(
+        x_sequences,
+        y_sequences,
+        config.sequence_qc.g_content_max,
+        config.sequence_qc.max_homopolymer_length,
+        config.codebook.spacer_sequence or "",
+        config.sequence_qc.reject_sequences_with_long_homopolymers,
     )
     
     # Save codes
@@ -173,6 +218,15 @@ def cmd_build_codebook(args):
             if args.strict:
                 logger.error("Strict mode: aborting due to QC failures")
                 sys.exit(1)
+
+        _reject_failed_composition(
+            x_sequences,
+            y_sequences,
+            config.sequence_qc.g_content_max,
+            config.sequence_qc.max_homopolymer_length,
+            config.codebook.spacer_sequence or "",
+            config.sequence_qc.reject_sequences_with_long_homopolymers,
+        )
     
     # Build codebook
     logger.info("Building codebook...")

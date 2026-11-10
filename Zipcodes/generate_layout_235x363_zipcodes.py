@@ -25,9 +25,13 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).parent))
 
 from spatial_zipcodes.config import load_config
-from spatial_zipcodes.axis_code_generator import generate_axis_codes
+from spatial_zipcodes.axis_code_generator import generate_column_and_row_codes
 from spatial_zipcodes.bit_to_dna import BitToDNAEncoder
-from spatial_zipcodes.sequence_qc import validate_axis_sequences
+from spatial_zipcodes.sequence_qc import (
+    calculate_g_content,
+    summarize_junction_homopolymers,
+    validate_axis_sequences,
+)
 from spatial_zipcodes.codebook import build_codebook, export_codebook
 from spatial_zipcodes.distance_analysis import analyze_axis_codes
 
@@ -83,35 +87,36 @@ def main():
     
     # Generate axis codes
     print(f"\n[2/7] Generating X and Y axis codes...")
+    print(f"  G content max: {config.sequence_qc.g_content_max:.0%} (enforced during search)")
     print(f"  This may take 2-5 minutes due to constraint satisfaction...")
     try:
-        # Generate X-axis codes
-        print(f"  Generating X-axis codes for {cols} columns...")
-        x_codes, x_verification = generate_axis_codes(
-            n_positions=cols,
-            bit_length=config.x_bit_length,
-            target_distances=config.error_correction.distances,
-            far_features_min_distance=config.error_correction.far_features_min_distance,
-            max_attempts_per_position=config.axis_code.max_attempts_per_position,
-            backtrack_depth=config.axis_code.backtrack_depth,
-            tolerance=config.axis_code.tolerance,
-            random_seed=config.axis_code.random_seed,
+        encoder = BitToDNAEncoder(
+            scheme=config.bit_to_dna.scheme,
+            mapping=config.bit_to_dna.mapping
+        )
+        spacer = config.codebook.spacer_sequence or ""
+        enforce_junction = config.sequence_qc.reject_sequences_with_long_homopolymers
+        x_codes, y_codes, x_sequences, y_sequences, x_verification, y_verification = (
+            generate_column_and_row_codes(
+                n_columns=cols,
+                n_rows=rows,
+                x_bit_length=config.x_bit_length,
+                y_bit_length=config.y_bit_length,
+                target_distances=config.error_correction.distances,
+                far_features_min_distance=config.error_correction.far_features_min_distance,
+                encoder=encoder,
+                g_content_max=config.sequence_qc.g_content_max,
+                max_homopolymer_length=config.sequence_qc.max_homopolymer_length,
+                spacer=spacer,
+                enforce_junction=enforce_junction,
+                max_attempts_per_position=config.axis_code.max_attempts_per_position,
+                backtrack_depth=config.axis_code.backtrack_depth,
+                tolerance=config.axis_code.tolerance,
+                random_seed=config.axis_code.random_seed,
+            )
         )
         print(f"    ✓ Generated {len(x_codes)} X-codes")
         print(f"    Hard constraint violations: {x_verification['hard_constraint_violations']}")
-        
-        # Generate Y-axis codes
-        print(f"  Generating Y-axis codes for {rows} rows...")
-        y_codes, y_verification = generate_axis_codes(
-            n_positions=rows,
-            bit_length=config.y_bit_length,
-            target_distances=config.error_correction.distances,
-            far_features_min_distance=config.error_correction.far_features_min_distance,
-            max_attempts_per_position=config.axis_code.max_attempts_per_position,
-            backtrack_depth=config.axis_code.backtrack_depth,
-            tolerance=config.axis_code.tolerance,
-            random_seed=config.axis_code.random_seed,
-        )
         print(f"    ✓ Generated {len(y_codes)} Y-codes")
         print(f"    Hard constraint violations: {y_verification['hard_constraint_violations']}")
         
@@ -142,14 +147,6 @@ def main():
     # Convert to DNA
     print(f"\n[3/7] Converting bit sequences to DNA...")
     try:
-        encoder = BitToDNAEncoder(
-            scheme=config.bit_to_dna.scheme,
-            mapping=config.bit_to_dna.mapping
-        )
-        
-        x_sequences = [encoder.encode(code) for code in axis_codes['x_codes']]
-        y_sequences = [encoder.encode(code) for code in axis_codes['y_codes']]
-        
         print(f"✓ DNA sequences generated")
         print(f"  X-sequences: {len(x_sequences)} × {len(x_sequences[0])}nt")
         print(f"  Y-sequences: {len(y_sequences)} × {len(y_sequences[0])}nt")
@@ -174,6 +171,33 @@ def main():
         x_valid, x_issues = validate_axis_sequences(x_sequences, 'X', qc_config)
         y_valid, y_issues = validate_axis_sequences(y_sequences, 'Y', qc_config)
         
+        g_max = config.sequence_qc.g_content_max
+        x_g = [calculate_g_content(seq) for seq in x_sequences]
+        y_g = [calculate_g_content(seq) for seq in y_sequences]
+        if max(x_g) > g_max or max(y_g) > g_max:
+            print(f"✗ G content exceeds {g_max:.0%}: "
+                  f"X max {max(x_g):.1%}, Y max {max(y_g):.1%}")
+            sys.exit(1)
+        print(f"✓ G content within {g_max:.0%} "
+              f"(X max {max(x_g):.1%}, Y max {max(y_g):.1%})")
+
+        junction = summarize_junction_homopolymers(
+            x_sequences,
+            y_sequences,
+            config.sequence_qc.max_homopolymer_length,
+            spacer,
+        )
+        print(f"  Junction homopolymer on full barcodes: "
+              f"max {junction['max_junction_run']} nt, "
+              f"{junction['n_violations']} over "
+              f"{config.sequence_qc.max_homopolymer_length} nt")
+        if junction["n_violations"] and enforce_junction:
+            for example in junction["examples"][:5]:
+                print(f"    row {example['row']} col {example['col']}: "
+                      f"{example['length']} nt in {example['barcode']}")
+            print("✗ Junction homopolymer limit exceeded")
+            sys.exit(1)
+
         if x_valid and y_valid:
             print(f"✓ All sequences passed QC")
         else:
@@ -181,7 +205,7 @@ def main():
                 print(f"⚠ X-axis issues: {x_issues}")
             if not y_valid:
                 print(f"⚠ Y-axis issues: {y_issues}")
-            print(f"  Proceeding with current sequences...")
+            print(f"  GC warnings were not used as a filter")
         
     except Exception as e:
         print(f"⚠ Warning: Validation error: {e}")

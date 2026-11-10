@@ -7,7 +7,16 @@ from spatial_zipcodes.axis_code_generator import (
     hamming_distance,
     AxisCodeGenerator,
     generate_axis_codes,
+    generate_column_and_row_codes,
 )
+from spatial_zipcodes.bit_to_dna import BitToDNAEncoder
+from spatial_zipcodes.sequence_qc import (
+    calculate_g_content,
+    junction_homopolymer_length,
+    summarize_junction_homopolymers,
+)
+
+PRINTED_MAPPING = {"00": "A", "01": "C", "10": "T", "11": "G"}
 
 
 class TestHammingDistance(unittest.TestCase):
@@ -131,6 +140,156 @@ class TestAxisCodeGenerator(unittest.TestCase):
             if diff in verification['soft_constraint_stats']:
                 stats = verification['soft_constraint_stats'][diff]
                 self.assertEqual(stats['target'], target_distances[diff - 1])
+
+
+class TestCompositionFilters(unittest.TestCase):
+    """G content is rejected before distances are scored."""
+
+    def _encoder(self):
+        return BitToDNAEncoder(scheme="2-bits-per-base", mapping=PRINTED_MAPPING)
+
+    def test_high_g_is_not_distance_scored(self):
+        import spatial_zipcodes.axis_code_generator as axis_mod
+
+        encoder = self._encoder()
+        # Printed mapping: 11 is G, 00 is A.
+        high_g = [1, 1, 1, 1, 1, 1, 1, 1]
+        no_g = [0, 0, 0, 0, 0, 0, 0, 0]
+        draws = [high_g, no_g]
+        scored = []
+
+        class RecordingGenerator(AxisCodeGenerator):
+            def _check_hard_constraints(self, candidate, position):
+                scored.append(list(candidate))
+                return super()._check_hard_constraints(candidate, position)
+
+        generator = RecordingGenerator(
+            n_positions=1,
+            bit_length=8,
+            target_distances=[1, 1, 1, 1],
+            far_features_min_distance=1,
+            max_attempts_per_position=5,
+            random_seed=42,
+            encoder=encoder,
+            g_content_max=0.0,
+        )
+        original = axis_mod.random_binary_code
+        axis_mod.random_binary_code = lambda length, rng: list(draws.pop(0))
+        try:
+            code = generator._generate_position(0)
+        finally:
+            axis_mod.random_binary_code = original
+
+        self.assertEqual(code, no_g)
+        self.assertEqual(generator.rejected_for_g, 1)
+        self.assertTrue(scored)
+        self.assertTrue(all(candidate == no_g for candidate in scored))
+        self.assertEqual(calculate_g_content(encoder.encode(code)), 0.0)
+
+    def test_column_end_leaves_room_for_any_row_start(self):
+        encoder = self._encoder()
+        generator = AxisCodeGenerator(
+            n_positions=1,
+            bit_length=6,
+            target_distances=[1, 1, 1, 1],
+            far_features_min_distance=1,
+            encoder=encoder,
+            max_homopolymer_length=3,
+            spacer="",
+            junction_role="left",
+        )
+        # 00 is A, so this is AAA. A trailing run of 3 would fill the budget.
+        self.assertFalse(generator._passes_composition([0, 0, 0, 0, 0, 0]))
+        # AAC ends with a single C, which leaves room for a following C.
+        self.assertTrue(generator._passes_composition([0, 0, 0, 0, 0, 1]))
+
+    def test_row_start_is_rejected_when_the_junction_would_be_too_long(self):
+        encoder = self._encoder()
+        generator = AxisCodeGenerator(
+            n_positions=1,
+            bit_length=6,
+            target_distances=[1, 1, 1, 1],
+            far_features_min_distance=1,
+            encoder=encoder,
+            max_homopolymer_length=3,
+            junction_role="right",
+            partner_right_edge={"A": 2, "C": 0, "G": 0, "T": 0},
+        )
+        # AA C would make a run of 4 against a column ending in AA.
+        self.assertFalse(generator._passes_composition([0, 0, 0, 0, 0, 1]))
+        # AC C adds one A. 2 + 1 fits in a limit of 3.
+        self.assertTrue(generator._passes_composition([0, 0, 0, 1, 0, 1]))
+
+    def test_internal_homopolymer_is_rejected_before_the_junction(self):
+        encoder = self._encoder()
+        generator = AxisCodeGenerator(
+            n_positions=1,
+            bit_length=12,
+            target_distances=[1, 1, 1, 1],
+            far_features_min_distance=1,
+            encoder=encoder,
+            max_homopolymer_length=3,
+            junction_role="right",
+            partner_right_edge={"A": 0, "C": 0, "G": 0, "T": 0},
+        )
+        # CAAAAC has an internal run of 4 and does not cross a junction.
+        self.assertFalse(generator._passes_composition([0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]))
+        self.assertEqual(generator.rejected_for_homopolymer, 1)
+        self.assertEqual(generator.rejected_for_junction, 0)
+
+    def test_column_and_row_codes_respect_g_and_junction(self):
+        encoder = self._encoder()
+        g_max = 0.25
+        homo_max = 3
+        _, _, x_sequences, y_sequences, _, _ = generate_column_and_row_codes(
+            n_columns=8,
+            n_rows=6,
+            x_bit_length=16,
+            y_bit_length=16,
+            target_distances=[2, 3, 4, 5],
+            far_features_min_distance=4,
+            encoder=encoder,
+            g_content_max=g_max,
+            max_homopolymer_length=homo_max,
+            spacer="",
+            enforce_junction=True,
+            max_attempts_per_position=2000,
+            random_seed=7,
+        )
+
+        for seq in x_sequences + y_sequences:
+            self.assertLessEqual(calculate_g_content(seq), g_max)
+            self.assertEqual(len(seq), 8)
+
+        summary = summarize_junction_homopolymers(
+            x_sequences, y_sequences, homo_max, spacer="",
+        )
+        self.assertEqual(summary["n_violations"], 0)
+        self.assertLessEqual(summary["max_junction_run"], homo_max)
+
+
+class TestJunctionHomopolymer(unittest.TestCase):
+    """Junction runs are measured on the concatenated barcode."""
+
+    def test_run_crossing_the_boundary(self):
+        self.assertEqual(junction_homopolymer_length("AAA", "ACC"), 4)
+        self.assertEqual(junction_homopolymer_length("AAC", "CTT"), 2)
+        self.assertEqual(junction_homopolymer_length("AAG", "CTT"), 0)
+
+    def test_spacer_extends_a_crossing_run(self):
+        self.assertEqual(junction_homopolymer_length("AA", "TT", spacer="GGG"), 0)
+        self.assertEqual(junction_homopolymer_length("AAG", "GTT", spacer="GG"), 4)
+
+    def test_summary_counts_only_pairs_over_the_limit(self):
+        summary = summarize_junction_homopolymers(
+            ["AAA", "CCC"],
+            ["ACC", "TTT"],
+            max_length=3,
+        )
+        self.assertEqual(summary["n_barcodes"], 4)
+        self.assertEqual(summary["n_violations"], 1)
+        self.assertEqual(summary["examples"][0]["barcode"], "AAAACC")
+        self.assertEqual(summary["max_junction_run"], 4)
 
 
 if __name__ == '__main__':

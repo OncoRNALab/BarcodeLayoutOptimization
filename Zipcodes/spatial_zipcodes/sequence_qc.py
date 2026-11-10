@@ -86,6 +86,125 @@ def find_max_homopolymer(sequence: str) -> Tuple[int, str]:
     return max_length, max_base
 
 
+def terminal_run(sequence: str, at_end: bool = True) -> Tuple[str, int]:
+    """
+    Length of the homopolymer at one end of a sequence.
+
+    Args:
+        sequence: DNA sequence
+        at_end: True for the 3' end, False for the 5' end
+
+    Returns:
+        (base, length). Empty sequence returns ("", 0).
+    """
+    if not sequence:
+        return "", 0
+
+    sequence = sequence.upper()
+    if at_end:
+        base = sequence[-1]
+        index = len(sequence) - 2
+        while index >= 0 and sequence[index] == base:
+            index -= 1
+        return base, len(sequence) - 1 - index
+
+    base = sequence[0]
+    index = 1
+    while index < len(sequence) and sequence[index] == base:
+        index += 1
+    return base, index
+
+
+def max_right_edge_by_base(sequences: List[str], spacer: str = "") -> Dict[str, int]:
+    """
+    Longest run ending each base after a sequence is joined to the spacer.
+
+    Used to bound the homopolymer that appears when a row code is concatenated
+    onto a column code. Bases that never occur have length 0.
+    """
+    edges = {base: 0 for base in "ACGT"}
+    for sequence in sequences:
+        base, length = terminal_run(sequence + spacer, at_end=True)
+        if base:
+            edges[base] = max(edges[base], length)
+    return edges
+
+
+def _run_span(sequence: str, index: int) -> Tuple[int, int]:
+    """Half-open [start, end) of the homopolymer covering index."""
+    base = sequence[index]
+    start = index
+    while start > 0 and sequence[start - 1] == base:
+        start -= 1
+    end = index + 1
+    while end < len(sequence) and sequence[end] == base:
+        end += 1
+    return start, end
+
+
+def junction_homopolymer_length(x_seq: str, y_seq: str, spacer: str = "") -> int:
+    """
+    Length of the longest homopolymer that crosses a concatenation boundary.
+
+    The barcode is x_seq + spacer + y_seq. A run counts only when it includes
+    at least one base on each side of a boundary, so a run that sits entirely
+    inside one axis code is not a junction run.
+    """
+    full = (x_seq + spacer + y_seq).upper()
+    boundaries = []
+    if x_seq and (spacer or y_seq):
+        boundaries.append(len(x_seq))
+    if spacer and y_seq:
+        boundaries.append(len(x_seq) + len(spacer))
+
+    longest = 0
+    for boundary in boundaries:
+        if boundary <= 0 or boundary >= len(full):
+            continue
+        start, end = _run_span(full, boundary - 1)
+        if start < boundary < end:
+            longest = max(longest, end - start)
+    return longest
+
+
+def summarize_junction_homopolymers(
+    x_sequences: List[str],
+    y_sequences: List[str],
+    max_length: int,
+    spacer: str = "",
+) -> Dict[str, any]:
+    """
+    Measure junction homopolymers on every concatenated barcode.
+
+    Returns the longest junction run, how many barcodes exceed max_length,
+    and up to 10 examples.
+    """
+    n_violations = 0
+    longest = 0
+    examples = []
+    for row, y_seq in enumerate(y_sequences):
+        for col, x_seq in enumerate(x_sequences):
+            length = junction_homopolymer_length(x_seq, y_seq, spacer)
+            if length > longest:
+                longest = length
+            if length > max_length:
+                n_violations += 1
+                if len(examples) < 10:
+                    examples.append({
+                        "row": row,
+                        "col": col,
+                        "length": length,
+                        "barcode": x_seq + spacer + y_seq,
+                    })
+    return {
+        "n_barcodes": len(x_sequences) * len(y_sequences),
+        "n_violations": n_violations,
+        "max_junction_run": longest,
+        "max_length": max_length,
+        "examples": examples,
+    }
+
+
 def find_all_homopolymers(sequence: str, min_length: int = 3) -> List[Dict[str, any]]:
     """
     Find all homopolymer runs above a minimum length.
