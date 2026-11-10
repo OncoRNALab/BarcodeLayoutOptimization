@@ -142,12 +142,17 @@ def generate_set(set_num, config_file):
                 backtrack_depth=config.axis_code.backtrack_depth,
                 tolerance=config.axis_code.tolerance,
                 random_seed=seed,
+                candidate_mode=config.axis_code.candidate_mode,
+                flip_counts=tuple(config.axis_code.flip_counts),
+                require_tolerance=config.axis_code.require_tolerance,
             )
         )
         print(f"    ✓ Generated {len(x_codes)} X-codes")
         print(f"    Hard constraint violations: {x_verification['hard_constraint_violations']}")
+        print(f"    Positions outside tolerance: {x_verification['positions_outside_tolerance']}")
         print(f"    ✓ Generated {len(y_codes)} Y-codes")
         print(f"    Hard constraint violations: {y_verification['hard_constraint_violations']}")
+        print(f"    Positions outside tolerance: {y_verification['positions_outside_tolerance']}")
         
         axis_codes = {'x_codes': x_codes, 'y_codes': y_codes}
         

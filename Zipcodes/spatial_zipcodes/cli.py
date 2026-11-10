@@ -100,6 +100,9 @@ def cmd_generate_axis_codes(args):
             backtrack_depth=config.axis_code.backtrack_depth,
             tolerance=config.axis_code.tolerance,
             random_seed=config.axis_code.random_seed,
+            candidate_mode=config.axis_code.candidate_mode,
+            flip_counts=tuple(config.axis_code.flip_counts),
+            require_tolerance=config.axis_code.require_tolerance,
         )
     )
     _reject_failed_composition(
@@ -136,9 +139,11 @@ def cmd_generate_axis_codes(args):
     # Print summary
     print(f"\nX axis: {len(x_codes)} codes, {len(x_codes[0])} bits each")
     print(f"  Hard constraint violations: {x_verification['hard_constraint_violations']}")
+    print(f"  Positions outside tolerance: {x_verification['positions_outside_tolerance']}")
     
     print(f"\nY axis: {len(y_codes)} codes, {len(y_codes[0])} bits each")
     print(f"  Hard constraint violations: {y_verification['hard_constraint_violations']}")
+    print(f"  Positions outside tolerance: {y_verification['positions_outside_tolerance']}")
 
 
 def cmd_analyze_distances(args):

@@ -69,10 +69,14 @@ def main():
         backtrack_depth=config.axis_code.backtrack_depth,
         tolerance=config.axis_code.tolerance,
         random_seed=config.axis_code.random_seed,
+        candidate_mode=config.axis_code.candidate_mode,
+        flip_counts=tuple(config.axis_code.flip_counts),
+        require_tolerance=config.axis_code.require_tolerance,
     )
     
     logger.info(f"  Generated {len(x_codes)} X codes")
     logger.info(f"  Hard constraint violations: {x_verification['hard_constraint_violations']}")
+    logger.info(f"  Positions outside tolerance: {x_verification['positions_outside_tolerance']}")
     
     # Step 3: Generate Y axis codes
     logger.info("\n[Step 3] Generating Y axis codes...")
@@ -85,10 +89,14 @@ def main():
         backtrack_depth=config.axis_code.backtrack_depth,
         tolerance=config.axis_code.tolerance,
         random_seed=config.axis_code.random_seed,
+        candidate_mode=config.axis_code.candidate_mode,
+        flip_counts=tuple(config.axis_code.flip_counts),
+        require_tolerance=config.axis_code.require_tolerance,
     )
     
     logger.info(f"  Generated {len(y_codes)} Y codes")
     logger.info(f"  Hard constraint violations: {y_verification['hard_constraint_violations']}")
+    logger.info(f"  Positions outside tolerance: {y_verification['positions_outside_tolerance']}")
     
     # Step 4: Convert to DNA sequences
     logger.info("\n[Step 4] Converting codes to DNA sequences...")

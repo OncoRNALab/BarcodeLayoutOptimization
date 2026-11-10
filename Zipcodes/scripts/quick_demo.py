@@ -37,6 +37,7 @@ x_codes, x_ver = generate_axis_codes(
 )
 print(f"  ✓ {len(x_codes)} codes, {len(x_codes[0])} bits each")
 print(f"  Hard constraint violations: {x_ver['hard_constraint_violations']}")
+print(f"  Positions outside tolerance: {x_ver['positions_outside_tolerance']}")
 
 # Generate Y codes
 print(f"\nGenerating Y axis codes...")
@@ -49,6 +50,7 @@ y_codes, y_ver = generate_axis_codes(
 )
 print(f"  ✓ {len(y_codes)} codes, {len(y_codes[0])} bits each")
 print(f"  Hard constraint violations: {y_ver['hard_constraint_violations']}")
+print(f"  Positions outside tolerance: {y_ver['positions_outside_tolerance']}")
 
 # Convert to DNA
 print(f"\nConverting to DNA sequences...")

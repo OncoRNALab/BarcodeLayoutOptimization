@@ -2,9 +2,11 @@
 Unit tests for axis code generator.
 """
 
+import random
 import unittest
 from spatial_zipcodes.axis_code_generator import (
     hamming_distance,
+    flip_neighbour_code,
     AxisCodeGenerator,
     generate_axis_codes,
     generate_column_and_row_codes,
@@ -140,6 +142,85 @@ class TestAxisCodeGenerator(unittest.TestCase):
             if diff in verification['soft_constraint_stats']:
                 stats = verification['soft_constraint_stats'][diff]
                 self.assertEqual(stats['target'], target_distances[diff - 1])
+
+
+class TestFlipCandidates(unittest.TestCase):
+    """Candidates built by flipping bits of the preceding code."""
+
+    def test_flips_exact_number_of_distinct_bits(self):
+        rng = random.Random(0)
+        previous = [0] * 36
+        for n_flips in (0, 1, 2, 5, 36):
+            candidate = flip_neighbour_code(previous, n_flips, rng)
+            self.assertEqual(hamming_distance(previous, candidate), n_flips)
+        self.assertEqual(previous, [0] * 36)
+
+    def test_invalid_flip_count_raises(self):
+        with self.assertRaises(ValueError):
+            flip_neighbour_code([0, 1], 3, random.Random(0))
+
+    def test_invalid_mode_raises(self):
+        with self.assertRaises(ValueError):
+            AxisCodeGenerator(
+                n_positions=4, bit_length=8, target_distances=[1, 2, 3, 4],
+                far_features_min_distance=4, candidate_mode="gray",
+            )
+
+    def test_flip_mode_hits_targets_at_36_bits(self):
+        targets = [2, 4, 6, 8]
+        codes, verification = generate_axis_codes(
+            n_positions=60,
+            bit_length=36,
+            target_distances=targets,
+            far_features_min_distance=8,
+            random_seed=42,
+            candidate_mode="flip",
+            require_tolerance=True,
+        )
+        self.assertEqual(len(codes), 60)
+        self.assertEqual(verification["hard_constraint_violations"], 0)
+        self.assertEqual(verification["positions_outside_tolerance"], 0)
+        for diff, target in enumerate(targets, start=1):
+            mean = verification["soft_constraint_stats"][diff]["actual_mean_distance"]
+            self.assertAlmostEqual(mean, target, delta=0.25)
+
+    def test_random_mode_misses_targets_at_36_bits(self):
+        _, verification = generate_axis_codes(
+            n_positions=30,
+            bit_length=36,
+            target_distances=[2, 4, 6, 8],
+            far_features_min_distance=8,
+            max_attempts_per_position=500,
+            random_seed=42,
+        )
+        self.assertGreater(verification["soft_constraint_stats"][1]["actual_mean_distance"], 6)
+        self.assertGreater(verification["positions_outside_tolerance"], 0)
+
+    def test_require_tolerance_rejects_best_effort_candidate(self):
+        generator = AxisCodeGenerator(
+            n_positions=2, bit_length=36, target_distances=[2, 4, 6, 8],
+            far_features_min_distance=8, max_attempts_per_position=20,
+            random_seed=1, require_tolerance=True,
+        )
+        generator.codes = [[0] * 36]
+        self.assertIsNone(generator._generate_position(1))
+
+    def test_flip_mode_respects_g_cap(self):
+        encoder = BitToDNAEncoder(scheme="2-bits-per-base", mapping=PRINTED_MAPPING)
+        codes, verification = generate_axis_codes(
+            n_positions=40,
+            bit_length=36,
+            target_distances=[2, 4, 6, 8],
+            far_features_min_distance=8,
+            random_seed=3,
+            encoder=encoder,
+            g_content_max=0.25,
+            candidate_mode="flip",
+            require_tolerance=True,
+        )
+        for code in codes:
+            self.assertLessEqual(calculate_g_content(encoder.encode(code)), 0.25)
+        self.assertEqual(verification["positions_outside_tolerance"], 0)
 
 
 class TestCompositionFilters(unittest.TestCase):

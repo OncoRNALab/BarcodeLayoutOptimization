@@ -132,6 +132,9 @@ class AxisCodeConfig:
     backtrack_depth: int = 5
     random_seed: Optional[int] = None
     tolerance: float = 0.5  # Tolerance for soft constraint violations
+    candidate_mode: str = "random"  # "random" or "flip" (bit flips of the preceding code)
+    flip_counts: List[int] = field(default_factory=lambda: [1, 2, 3])
+    require_tolerance: bool = False  # Backtrack instead of keeping an out-of-tolerance code
 
 
 @dataclass

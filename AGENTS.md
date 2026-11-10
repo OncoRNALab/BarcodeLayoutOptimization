@@ -43,8 +43,24 @@ All methods are first-class, and none are archived. Three were printed and appea
   - **Soft targets:** bit distance to the codes 1, 2, 3 and 4 positions back should be 2, 4, 6 and 8 bits. A candidate is accepted if the mean squared deviation is ≤ 16.
   - **Hard constraint:** ≥ 8 bits from every code 5 or more positions back.
   - **Backtracking:** up to 5 positions.
-- **Measured distances:** adjacent column codes differ by 8.8 bits on average (range 4–12), 10.5 bits at offset 4 and 17.9 bits beyond. The targets are not reached.
+- **Measured distances:** adjacent column codes differ by 8.8 bits on average (range 4–12), 10.5 bits at offset 4 and 17.9 bits beyond. The targets are **not reached**.
+  - **Why:** every candidate is a fresh random 36-bit code, about 18 ± 3 bits from any other, so a 2-bit neighbour is practically never drawn.
+  - **Hidden failure:** when nothing met the tolerance, the generator silently kept the best of the 10,000 draws. Only 19 of 362 printed positions (5%) are within tolerance.
 - **Code:** `Zipcodes/generate_layout_235x363_zipcodes.py Zipcodes/config_235x363_nosep.json` (a copy of the config is in `data/1in1/config_files/zip_config_235x363_nosep.json`).
+
+### Zipcodes candidate modes (`axis_code` section of the config)
+- `candidate_mode`:
+  - `"random"` (the default, used for the printed array) keeps `random_binary_code`.
+  - `"flip"` builds each candidate from the preceding code with `flip_neighbour_code`, flipping a number of bits drawn from `flip_counts` (default `[1, 2, 3]`). Position 0 is still random.
+  - In flip mode the first candidate that hits all four targets exactly is taken; otherwise the best-scoring one.
+- `require_tolerance: true` backtracks instead of keeping an out-of-tolerance code.
+- `positions_outside_tolerance` is now reported by `verify_constraints` and printed by the layout scripts.
+- **Flip design:** `Zipcodes/config_235x363_flip.json`, with output in `Zipcodes/output_235x363_flip/`.
+  - Distances are exactly 2, 4, 6 and 8 bits at offsets 1–4 on both axes; about 9.7 at offset 5, rising to about 18 for distant codes. The minimum far distance is 8, with 0 positions outside tolerance.
+  - Composition: G ≤ 22% per axis code (cap 25%), homopolymers ≤ 3 nt, including at the junction.
+  - Mapping: printed (00→A, 01→C, 10→T, 11→G).
+  - **Not printed yet.**
+- The GC range (0.4–0.6) in `sequence_qc` is still only reported, not enforced. About half the flip-design axis codes fall outside it.
 
 ### Greedy + 2-OPT (printed baseline; separate repository)
 Greedy + 2-OPT is a third-party method (BarLay, Jatzkowski et al. 2024) used as the baseline. Its code lives in its own repository (local clones: `~/Documents/Barlay_new/BarLay`, `~/Documents/layout_opt/BarLay`) and should not be added to or modified from this repo. This repo only consumes its output: the printed layout in `data/1in1/` and the second pool for decoys.

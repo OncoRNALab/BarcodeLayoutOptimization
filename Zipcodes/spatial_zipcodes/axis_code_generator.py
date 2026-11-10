@@ -50,6 +50,29 @@ def random_binary_code(length: int, rng: random.Random) -> List[int]:
     return [rng.randint(0, 1) for _ in range(length)]
 
 
+def flip_neighbour_code(previous: List[int], n_flips: int, rng: random.Random) -> List[int]:
+    """
+    Copy a binary code and flip a number of distinct bits.
+
+    Args:
+        previous: Code to start from (left unchanged)
+        n_flips: Number of distinct bits to flip
+        rng: Random number generator
+
+    Returns:
+        New list of 0s and 1s at Hamming distance n_flips from previous
+    """
+    if not 0 <= n_flips <= len(previous):
+        raise ValueError(f"n_flips must be in [0, {len(previous)}], got {n_flips}")
+    candidate = list(previous)
+    for bit in rng.sample(range(len(previous)), n_flips):
+        candidate[bit] ^= 1
+    return candidate
+
+
+CANDIDATE_MODES = ("random", "flip")
+
+
 class AxisCodeGenerator:
     """
     Generates 1D axis codes with specified distance constraints.
@@ -57,6 +80,13 @@ class AxisCodeGenerator:
     Uses a randomized greedy algorithm with backtracking to construct
     codes that satisfy hard constraints (far-features minimum distance)
     and approximate soft constraints (target distances for nearby positions).
+
+    Candidate modes:
+        "random": every candidate is a fresh random code. At 36 bits a random
+            code is about 18 bits from any other, so small targets are missed.
+        "flip": every candidate is the preceding code with a few bits flipped
+            (counts drawn from flip_counts). The first candidate that meets all
+            targets exactly is taken; otherwise the best-scoring one.
     """
     
     def __init__(
@@ -75,6 +105,9 @@ class AxisCodeGenerator:
         spacer: str = "",
         junction_role: Optional[str] = None,
         partner_right_edge: Optional[Dict[str, int]] = None,
+        candidate_mode: str = "random",
+        flip_counts: Tuple[int, ...] = (1, 2, 3),
+        require_tolerance: bool = False,
     ):
         """
         Initialize the axis code generator.
@@ -101,7 +134,19 @@ class AxisCodeGenerator:
                 matching column-code edge, would exceed max_homopolymer_length.
             partner_right_edge: For role "right", longest right-edge run of each
                 base across the already chosen column codes (spacer included).
+            candidate_mode: "random" (fresh random codes) or "flip" (bit flips
+                of the preceding code). Position 0 is always random.
+            flip_counts: Numbers of bits a "flip" candidate may flip, drawn
+                uniformly per candidate.
+            require_tolerance: If True, a position with no candidate inside the
+                tolerance triggers backtracking. If False, the best candidate
+                found is kept even when it misses the tolerance.
         """
+        if candidate_mode not in CANDIDATE_MODES:
+            raise ValueError(f"candidate_mode must be one of {CANDIDATE_MODES}, got {candidate_mode!r}")
+        if candidate_mode == "flip":
+            if not flip_counts or any(not 1 <= k <= bit_length for k in flip_counts):
+                raise ValueError(f"flip_counts must be non-empty values in [1, {bit_length}], got {flip_counts}")
         if g_content_max is not None and encoder is None:
             raise ValueError("encoder is required when g_content_max is set")
         if junction_role is not None and junction_role not in ("left", "right"):
@@ -137,6 +182,9 @@ class AxisCodeGenerator:
         self.spacer = spacer or ""
         self.junction_role = junction_role
         self.partner_right_edge = partner_right_edge or {}
+        self.candidate_mode = candidate_mode
+        self.flip_counts = tuple(flip_counts)
+        self.require_tolerance = require_tolerance
         
         self.rng = random.Random(random_seed)
         self.codes: List[List[int]] = []
@@ -148,7 +196,8 @@ class AxisCodeGenerator:
         
         logger.info(
             f"Initialized AxisCodeGenerator: n={n_positions}, L={bit_length}, "
-            f"targets={target_distances}, far_min={far_features_min_distance}"
+            f"targets={target_distances}, far_min={far_features_min_distance}, "
+            f"mode={candidate_mode}"
         )
     
     def _target_distance_for_diff(self, diff: int) -> int:
@@ -323,9 +372,10 @@ class AxisCodeGenerator:
         """
         best_candidate = None
         best_score = float('inf')
+        flip = self.candidate_mode == "flip" and position > 0
         
         for attempt in range(self.max_attempts):
-            candidate = random_binary_code(self.bit_length, self.rng)
+            candidate = self._draw_candidate(position)
 
             # Composition before distances: a high-G code is never scored.
             if not self._passes_composition(candidate):
@@ -338,17 +388,35 @@ class AxisCodeGenerator:
                     best_candidate = candidate
                     best_score = score
                 
-                # Accept if good enough
-                if self._is_acceptable(candidate, position):
+                # Flip candidates hit the targets exactly often enough to wait
+                # for a perfect one; the loose tolerance would accept drift.
+                if flip:
+                    if score == 0:
+                        return candidate
+                elif self._is_acceptable(candidate, position):
                     return candidate
         
-        # Return best found, even if not ideal
-        if best_candidate is not None:
+        if best_candidate is None:
+            return None
+        if not self._is_acceptable(best_candidate, position):
+            if self.require_tolerance:
+                logger.debug(
+                    f"Position {position}: no candidate within tolerance "
+                    f"(best score {best_score:.2f}); backtracking"
+                )
+                return None
             logger.debug(
                 f"Position {position}: accepting best candidate with score {best_score:.2f} "
                 f"after {self.max_attempts} attempts"
             )
         return best_candidate
+
+    def _draw_candidate(self, position: int) -> List[int]:
+        """Draw one candidate code for a position according to candidate_mode."""
+        if self.candidate_mode == "flip" and position > 0:
+            n_flips = self.rng.choice(self.flip_counts)
+            return flip_neighbour_code(self.codes[position - 1], n_flips, self.rng)
+        return random_binary_code(self.bit_length, self.rng)
     
     def generate(self) -> List[List[int]]:
         """
@@ -424,6 +492,9 @@ class AxisCodeGenerator:
             "n_positions": len(self.codes),
             "bit_length": self.bit_length,
             "hard_constraint_violations": 0,
+            "positions_outside_tolerance": sum(
+                not self._is_acceptable(self.codes[i], i) for i in range(len(self.codes))
+            ),
             "soft_constraint_stats": {},
             "distance_distribution": {},
         }
@@ -490,6 +561,9 @@ def generate_axis_codes(
     spacer: str = "",
     junction_role: Optional[str] = None,
     partner_right_edge: Optional[Dict[str, int]] = None,
+    candidate_mode: str = "random",
+    flip_counts: Tuple[int, ...] = (1, 2, 3),
+    require_tolerance: bool = False,
 ) -> Tuple[List[List[int]], Dict[str, any]]:
     """
     Generate and verify axis codes.
@@ -512,6 +586,9 @@ def generate_axis_codes(
         spacer: Spacer inserted between the two axis sequences
         junction_role: "left" (column) or "right" (row) junction budget
         partner_right_edge: Right-edge runs of the column codes, for role "right"
+        candidate_mode: "random" or "flip" (see AxisCodeGenerator)
+        flip_counts: Bits flipped per "flip" candidate
+        require_tolerance: Backtrack instead of keeping an out-of-tolerance code
         
     Returns:
         Tuple of (codes, verification_results)
@@ -531,6 +608,9 @@ def generate_axis_codes(
         spacer=spacer,
         junction_role=junction_role,
         partner_right_edge=partner_right_edge,
+        candidate_mode=candidate_mode,
+        flip_counts=flip_counts,
+        require_tolerance=require_tolerance,
     )
     
     codes = generator.generate()
@@ -555,6 +635,9 @@ def generate_column_and_row_codes(
     backtrack_depth: int = 5,
     tolerance: float = 0.5,
     random_seed: Optional[int] = None,
+    candidate_mode: str = "random",
+    flip_counts: Tuple[int, ...] = (1, 2, 3),
+    require_tolerance: bool = False,
 ) -> Tuple[List[List[int]], List[List[int]], List[str], List[str], Dict, Dict]:
     """
     Generate column codes, then row codes, with composition enforced.
@@ -573,6 +656,9 @@ def generate_column_and_row_codes(
         encoder=encoder,
         g_content_max=g_content_max,
         random_seed=random_seed,
+        candidate_mode=candidate_mode,
+        flip_counts=flip_counts,
+        require_tolerance=require_tolerance,
     )
     left = dict(shared)
     if enforce_junction:
