@@ -8,7 +8,7 @@ This repository designs **spatial barcode layouts** for photolithographic (maskl
 
 - **Array:** full density is 235 rows × 363 columns, giving 85,305 features of 13.7 µm with 1 µm gaps. Half density is a checkerboard of 42,471 printed features.
 - **Barcode:** every feature carries a 36-nt barcode, read from Read 1 at positions 11–46, right after the 10-nt UMI.
-- **Synthesis model:** probes are synthesized 5′→3′ with the deposition order A, C, G, T, and each barcode is embedded left-most. Features that share a barcode prefix are illuminated (co-activated) together, which can reduce stray-light insertions.
+- **Synthesis model:** probes are synthesized 5′→3′ with the fixed printing (deposition) order **A > C > G > T**, repeated every 4 cycles, and each barcode is embedded left-most. Features that share a barcode prefix are illuminated (co-activated) together, which can reduce stray-light insertions.
 - **Decoding:** QUIK, using sequence-Levenshtein distance and the 4-mer single-stage filter, with rejection threshold r ∈ {5, 6, 7}, or {6, 7, 8} at half density.
 
 The work is published in a BMC Bioinformatics manuscript, which lives outside this repo at `~/Documents/phd_thesis_revision/layoutopt_manuscript/`. `docs/methods.md` is an excerpt of its Methods and is the **authoritative description** of the printed designs and decoys. If code or older READMEs disagree with `docs/methods.md`, trust `docs/methods.md`, then the data, then the code.
@@ -21,7 +21,7 @@ All methods are first-class, and none are archived. Three were printed and appea
 |---|---|---|
 | `Dual_barcodes/` | Dual barcodes: 4×4 blocks share bar_1 | Printed at full and half density (manuscript) |
 | `Zipcodes/` | Zipcodes: [column code][row code] | Printed at full density (manuscript) |
-| *(external)* | Greedy + 2-OPT (BarLay, GPU) | Printed at full density (manuscript); **generation code is not here** |
+| *(not in this repo)* | Greedy + 2-OPT (BarLay, GPU; third-party baseline) | Printed at full density (manuscript). The algorithm belongs to a **separate repository** that was not developed in this project; only its printed layout and decoy pool are kept here |
 | `Quadtree/` | Hierarchical quadtree + RLL, hybrid 24 nt + 12 nt | Layouts exist; printed variant `data/1in1/layout_235x363_quadtree_8x3_12nt.*`; **excluded from the manuscript** |
 | `HSDB/` | Hierarchical Spatial Dual Barcodes (28-nt Zipcode bar_1 + 8-nt bar_2, G ≤ 25%) | Designed, not printed; see `IMPROVEMENT_PLAN.md`, `SummaryNewDesigns.md` |
 | `inhouse_barcodes/` | Random barcode libraries (filtered random 36-nt pool and its 12/18-nt prefixes and suffixes) | Input for Dual, Quadtree and decoys |
@@ -46,7 +46,8 @@ All methods are first-class, and none are archived. Three were printed and appea
 - **Measured distances:** adjacent column codes differ by 8.8 bits on average (range 4–12), 10.5 bits at offset 4 and 17.9 bits beyond. The targets are not reached.
 - **Code:** `Zipcodes/generate_layout_235x363_zipcodes.py Zipcodes/config_235x363_nosep.json` (a copy of the config is in `data/1in1/config_files/zip_config_235x363_nosep.json`).
 
-### Greedy + 2-OPT (printed, external code)
+### Greedy + 2-OPT (printed baseline; separate repository)
+Greedy + 2-OPT is a third-party method (BarLay, Jatzkowski et al. 2024) used as the baseline. Its code lives in its own repository (local clones: `~/Documents/Barlay_new/BarLay`, `~/Documents/layout_opt/BarLay`) and should not be added to or modified from this repo. This repo only consumes its output: the printed layout in `data/1in1/` and the second pool for decoys.
 - **Pool and placement:** a random pool of unique 36-nt barcodes (homopolymers ≤ 3 nt, G ≤ 25%) was placed by BarLay (Jatzkowski et al. 2024) with default settings.
 - **Cost:** each barcode is a left-most schedule binary vector, and the cost is the summed schedule Hamming distance over all 8-neighbour pairs.
 - **Greedy step:** fills one position at a time with the unused barcode closest to its already placed neighbours.
@@ -55,8 +56,11 @@ All methods are first-class, and none are archived. Three were printed and appea
 
 ### Synthesis / co-activation facts (verified from printing masks)
 - All barcodes start in the same cycle, right after the UMI.
-- **Zipcodes:** the printer **waits until every column code is finished** before starting the row codes, so whole rows co-activate during the second half. Without the wait, phases would drift between features.
-- **Dual:** it is unknown whether the printer also waits between bar_1 and bar_2.
+- **Both co-designed layouts are printed in two synchronized halves.** The printer finishes the first 18-nt half on **every** feature before it starts the second half:
+  - Dual barcodes: all bar_1 codes, then all bar_2 codes.
+  - Zipcodes: all column codes, then all row codes.
+- **Why it matters:** the second half starts in the same cycle everywhere. Features sharing a first half (a Dual block, a Zipcodes column) stay in phase during the first half. Features sharing a row code co-activate during the second half. Without the wait, the second half would start at different cycles and its co-activation would drift towards random.
+- **Models must include the wait:** any simulation of masks, cycles or co-activation should model it. Some older analysis code assumes no wait, e.g. `phd_thesis_revision/layoutopt_manuscript/analyses/recall_sequence_features/02_feature_table.py` and the Dual co-activation animation.
 
 ## Decoys (`decoys/`)
 
@@ -134,7 +138,7 @@ The `.txt` versions list one barcode per line, in column-major order.
    - Dual: up to 42% G.
    - High-G Zipcodes axis codes correlate with low-read rows and columns.
    - HSDB and the newer Zipcodes ideas add G ≤ 25%.
-6. **2-OPT pool exchanges (open question).** The manuscript says 2-OPT also swaps placed barcodes with unplaced pool barcodes. The BarLay paper describes swaps between placed barcodes only. Unresolved.
+6. **2-OPT pool exchanges (open question, concerns the external BarLay code).** The manuscript says 2-OPT also swaps placed barcodes with unplaced pool barcodes. The BarLay paper describes swaps between placed barcodes only. Unresolved.
 7. **φ for Zipcodes.** Zipcodes misassignments stay on one axis, so use φ = 1/3 (local), not the global ≈ 1/2.
 8. **Absolute cluster paths.** These point at `/user/gent/446/vsc44685/ScratchVO_dir/layout_opt/…`. They appear in the `*.sh` scripts and in `barcode_file` / `library_file` in the JSON configs. Adapt them before running locally.
 9. **Not tracked in git (see `.gitignore`).** Simulated reads (`*.fastq`, `*_read_L36zip*.txt`, ~230 MB) and SLURM logs are local only.
@@ -144,4 +148,4 @@ The `.txt` versions list one barcode per line, in column-major order.
 - Python 3, plus `numpy` and `pandas`. The decoy scripts need only `numpy`.
 - Seeds: layouts use 42; decoys use 2026.
 - Figures for publication: editable vector PDF with `matplotlib.rcParams['pdf.fonttype'] = 42` and Arial.
-- Methods are named **Dual barcodes**, **Zipcodes** and **Greedy + 2-OPT**. Quadtree and HSDB are kept for future designs.
+- Methods are named **Dual barcodes**, **Zipcodes** and **Greedy + 2-OPT**; the last is the external baseline. Quadtree and HSDB are kept for future designs.
