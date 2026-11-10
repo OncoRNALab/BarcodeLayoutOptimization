@@ -55,12 +55,31 @@ All methods are first-class, and none are archived. Three were printed and appea
   - In flip mode the first candidate that hits all four targets exactly is taken; otherwise the best-scoring one.
 - `require_tolerance: true` backtracks instead of keeping an out-of-tolerance code.
 - `positions_outside_tolerance` is now reported by `verify_constraints` and printed by the layout scripts.
-- **Flip design:** `Zipcodes/config_235x363_flip.json`, with output in `Zipcodes/output_235x363_flip/`.
-  - Distances are exactly 2, 4, 6 and 8 bits at offsets 1–4 on both axes; about 9.7 at offset 5, rising to about 18 for distant codes. The minimum far distance is 8, with 0 positions outside tolerance.
-  - Composition: G ≤ 22% per axis code (cap 25%), homopolymers ≤ 3 nt, including at the junction.
-  - Mapping: printed (00→A, 01→C, 10→T, 11→G).
-  - **Not printed yet.**
-- The GC range (0.4–0.6) in `sequence_qc` is still only reported, not enforced. About half the flip-design axis codes fall outside it.
+- **Composition is enforced inside the candidate loop**, in both modes, before distances are scored:
+  - the G cap per 18-nt axis code (`sequence_qc.g_content_max`);
+  - the homopolymer limit (`max_homopolymer_length`), including the run across the column/row junction (`reject_sequences_with_long_homopolymers: true`).
+  - The GC range (`gc_content_min` / `gc_content_max`) is still only reported, not enforced. About half the flip-design axis codes fall outside 0.4–0.6.
+- **Run:** `cd Zipcodes && python generate_layout_235x363_zipcodes.py <config.json> <output_dir>` (about 1 minute in flip mode).
+
+### Zipcodes flip-mode designs (235×363, not printed yet)
+
+Both designs use seed 42, the printed bit mapping (00→A, 01→C, 10→T, 11→G), `require_tolerance: true` and homopolymers ≤ 3 nt including the junction. All 85,305 barcodes are unique in each.
+
+| | `flip` | `flip_g15_d6-12` |
+|---|---|---|
+| Config | `Zipcodes/config_235x363_flip.json` | `Zipcodes/config_235x363_flip_g15_d6-12.json` |
+| Output | `Zipcodes/output_235x363_flip/` | `Zipcodes/output_235x363_flip_g15_d6-12/` |
+| Targets, offsets 1–4 (bits) | 2, 4, 6, 8 | 6, 8, 10, 12 |
+| Min distance ≥ 5 apart (bits) | 8 | 12 (raised so distant codes are never closer than offset 4) |
+| `flip_counts` | 1, 2, 3 | 4–8 |
+| G cap per axis code | 25% (max reached 22%) | 15%, i.e. ≤ 2 G per 18 nt (max reached 11%, mean 9%) |
+| Achieved, offsets 1–4 (bits) | exactly 2, 4, 6, 8 everywhere | 5.9, 8.0, 10.0, 12.0 on average; 93–100% exactly on target, rest within ±2 |
+| Achieved, offset 5 / offset 20 (bits) | 9.7 / 17.6 | 13.5 / 17.6 |
+| Bases that differ, offset 1 | — | mean 5.4 (3–8), mostly 5–6 of 18 |
+| Positions outside tolerance / backtracks | 0 / 0 | 0 / 0 |
+| Row codes equal to a column code | 12 | 0 |
+
+Distances are in **bits**, and each base holds 2 bits. A bit distance d changes between d/2 bases (both bits of the same bases) and d bases (one bit per base), usually close to d. To control the difference in bases directly, the soft-constraint score would have to be computed on the DNA sequences instead.
 
 ### Greedy + 2-OPT (printed baseline; separate repository)
 Greedy + 2-OPT is a third-party method (BarLay, Jatzkowski et al. 2024) used as the baseline. Its code lives in its own repository (local clones: `~/Documents/Barlay_new/BarLay`, `~/Documents/layout_opt/BarLay`) and should not be added to or modified from this repo. This repo only consumes its output: the printed layout in `data/1in1/` and the second pool for decoys.
@@ -141,8 +160,9 @@ The `.txt` versions list one barcode per line, in column-major order.
 2. **Bit-to-base mapping.**
    - The printed design and `make_zip_decoys.py` use 00→A, 01→C, 10→T, 11→G.
    - `spatial_zipcodes/bit_to_dna.py` defaults to 10→G, 11→T.
-   - The config labels its mapping "4-bits-per-base" one-hot (1000→A, 0100→C, 0010→T, 0001→G), which in practice yields the 10→T, 11→G mapping.
-   - Check before reusing.
+   - The printed config (`data/1in1/config_files/zip_config_235x363_nosep.json`) labels its mapping "4-bits-per-base" one-hot with an explicit `1000→A, 0100→C, 0010→T, 0001→G`, which yields 10→T, 11→G.
+   - `Zipcodes/config_235x363_nosep.json` sets the same scheme **without** a mapping, so it falls back to the code default (0010→G), i.e. 10→G, 11→T. That is **not** the printed mapping.
+   - The flip configs set the printed mapping explicitly. Check before reusing any other config.
 3. **Mixed Zipcodes runs.**
    - In `Zipcodes/output_235x363_nosep/`, only `layout_235x363_zipcodes_nosep_colmajor.csv` is the printed layout.
    - The other files there come from a **different run** and share no axis codes with the printed array: `layout_235x363_zipcodes_nosep.csv`, `codebook.csv`, `barcodes_235x363_nosep.txt` and `intermediate/axis_codes.json`.
@@ -153,11 +173,16 @@ The `.txt` versions list one barcode per line, in column-major order.
    - Zipcodes: up to 53% G, homopolymers up to 11 nt. This is despite `sequence_qc` in the config, which was reported, not enforced.
    - Dual: up to 42% G.
    - High-G Zipcodes axis codes correlate with low-read rows and columns.
-   - HSDB and the newer Zipcodes ideas add G ≤ 25%.
+   - HSDB adds G ≤ 25%. The current Zipcodes generator enforces the G cap and the junction homopolymer limit during generation (see *Zipcodes candidate modes*).
 6. **2-OPT pool exchanges (open question, concerns the external BarLay code).** The manuscript says 2-OPT also swaps placed barcodes with unplaced pool barcodes. The BarLay paper describes swaps between placed barcodes only. Unresolved.
 7. **φ for Zipcodes.** Zipcodes misassignments stay on one axis, so use φ = 1/3 (local), not the global ≈ 1/2.
 8. **Absolute cluster paths.** These point at `/user/gent/446/vsc44685/ScratchVO_dir/layout_opt/…`. They appear in the `*.sh` scripts and in `barcode_file` / `library_file` in the JSON configs. Adapt them before running locally.
 9. **Not tracked in git (see `.gitignore`).** Simulated reads (`*.fastq`, `*_read_L36zip*.txt`, ~230 MB) and SLURM logs are local only.
+10. **`generate_layout_235x363_zipcodes.py` exits with code 1 even on success.**
+    - It prints `Warning: Analysis error: 'distance_stats'`, then ends with `name 'analysis' is not defined`.
+    - Both are bugs in the summary printout, present since the initial import. Every output file is written before they occur.
+    - Check the files, not the exit code.
+11. **Bits vs bases.** Distance targets and `flip_counts` are in bits, not nucleotides. See the note under *Zipcodes flip-mode designs*.
 
 ## Conventions
 
