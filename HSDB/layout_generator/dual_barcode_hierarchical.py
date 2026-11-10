@@ -106,15 +106,44 @@ def max_homopolymer(seq: str) -> int:
 # Layout generation
 # --------------------------------------------------------------------------
 
+def terminal_run(seq: str, at_end: bool = True) -> tuple:
+    if not seq:
+        return "", 0
+    if at_end:
+        base = seq[-1]
+        i = len(seq) - 1
+        while i >= 0 and seq[i] == base:
+            i -= 1
+        return base, len(seq) - 1 - i
+    base = seq[0]
+    i = 0
+    while i < len(seq) and seq[i] == base:
+        i += 1
+    return base, i
+
+
+def junction_ok(bar1: str, bar2: str, max_homo: int) -> bool:
+    end_base, end_len = terminal_run(bar1, at_end=True)
+    start_base, start_len = terminal_run(bar2, at_end=False)
+    if end_base != start_base:
+        return True
+    return end_len + start_len <= max_homo
+
+
 def generate_layout(
     bar1_seqs: List[str],
     bar2_seqs: List[str],
     array_rows: int,
     array_cols: int,
     seed: Optional[int] = 42,
+    max_homopolymer_limit: int = 3,
 ) -> List[Dict]:
     """
     Assign barcodes to all spots in row-major order.
+
+    Within each block, bar_2 codes are a random permutation of the library,
+    restricted to codes that do not extend the block's bar_1 ending run past
+    max_homopolymer_limit.
 
     Returns a list of dicts, one per spot:
       row, col, block_row, block_col, spot_in_block,
@@ -147,8 +176,25 @@ def generate_layout(
             block_idx = br * block_cols + bc
             bar1 = bar1_seqs[block_idx]
 
-            # Randomly permute bar_2 across the 16 spots in this block
-            permuted_bar2 = bar2_seqs[:N_SPOT_IDS].copy()
+            compatible = [
+                b2 for b2 in bar2_seqs[:N_SPOT_IDS]
+                if junction_ok(bar1, b2, max_homopolymer_limit)
+            ]
+            n_spots_in_block = sum(
+                1
+                for di in range(BLOCK_SIZE)
+                for dj in range(BLOCK_SIZE)
+                if br * BLOCK_SIZE + di < array_rows
+                and bc * BLOCK_SIZE + dj < array_cols
+            )
+            if len(compatible) < n_spots_in_block:
+                raise ValueError(
+                    f"Block ({br},{bc}): only {len(compatible)} bar_2 codes are "
+                    f"junction-safe with bar_1 ending "
+                    f"'{bar1[-3:]}…', need {n_spots_in_block}"
+                )
+
+            permuted_bar2 = compatible.copy()
             rng.shuffle(permuted_bar2)
 
             spot_in_block = 0
@@ -161,8 +207,13 @@ def generate_layout(
                     if row >= array_rows or col >= array_cols:
                         continue
 
-                    bar2 = permuted_bar2[spot_in_block % N_SPOT_IDS]
+                    bar2 = permuted_bar2[spot_in_block]
                     combined = bar1 + bar2
+                    if max_homopolymer(combined) > max_homopolymer_limit:
+                        raise ValueError(
+                            f"Combined barcode at ({row},{col}) has a "
+                            f"homopolymer longer than {max_homopolymer_limit}"
+                        )
 
                     spots.append({
                         "row": row,
@@ -183,7 +234,7 @@ def generate_layout(
 # Validation
 # --------------------------------------------------------------------------
 
-def validate_layout(spots: List[Dict]) -> None:
+def validate_layout(spots: List[Dict], max_homopolymer_limit: int = 3) -> None:
     """Raise ValueError on any layout constraint violation."""
     combined_seen: Dict[str, tuple] = {}
     block_bar1: Dict[tuple, str] = {}
@@ -219,6 +270,16 @@ def validate_layout(spots: List[Dict]) -> None:
                 f"Block {bk}: duplicate bar_2 '{s['bar_2']}'"
             )
         block_bar2[bk].add(s["bar_2"])
+
+        if not junction_ok(s["bar_1"], s["bar_2"], max_homopolymer_limit):
+            raise ValueError(
+                f"Junction homopolymer at {pos}: bar_1 ends "
+                f"'{s['bar_1'][-3:]}', bar_2 starts '{s['bar_2'][:3]}'"
+            )
+        if max_homopolymer(comb) > max_homopolymer_limit:
+            raise ValueError(
+                f"Homopolymer > {max_homopolymer_limit} in combined barcode at {pos}"
+            )
 
     print(f"  Validation passed: {len(combined_seen):,} globally unique combined barcodes")
 

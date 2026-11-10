@@ -7,6 +7,8 @@ Selects 16 barcodes of 8 nt with:
   - GC content 40–60%
   - G content <= 20%  (max 2 G's in 8 nt, per Idea 3 constraint)
   - No homopolymer run > 3 nt
+  - Leading run <= 1 nt, so appending bar_2 cannot extend a bar_1 ending
+    of length 2 into a run longer than 3
 
 These 16 barcodes are the fixed bar_2 set, reused in every block.
 Global uniqueness of each spot is guaranteed by the unique bar_1 of its block.
@@ -24,6 +26,7 @@ from typing import List, Tuple
 BARCODE_LEN = 8
 N_BARCODES = 16
 BASES = "ACGT"
+MAX_LEADING_RUN = 1
 
 
 # --------------------------------------------------------------------------
@@ -48,14 +51,25 @@ def max_homopolymer(seq: str) -> int:
     return max_run
 
 
+def leading_run(seq: str) -> int:
+    if not seq:
+        return 0
+    i = 1
+    while i < len(seq) and seq[i] == seq[0]:
+        i += 1
+    return i
+
+
 def passes_qc(seq: str,
               gc_min: float = 0.40,
               gc_max: float = 0.60,
               g_max: float = 0.20,
-              max_homo: int = 3) -> bool:
+              max_homo: int = 3,
+              max_leading: int = MAX_LEADING_RUN) -> bool:
     return (gc_min <= gc_content(seq) <= gc_max
             and g_fraction(seq) <= g_max
-            and max_homopolymer(seq) <= max_homo)
+            and max_homopolymer(seq) <= max_homo
+            and leading_run(seq) <= max_leading)
 
 
 def hamming(a: str, b: str) -> int:
@@ -124,7 +138,7 @@ def main() -> None:
     print(f"Enumerating all {args.length}-mers passing QC...", flush=True)
     candidates = enumerate_candidates(args.length)
     print(f"  {len(candidates):,} candidates pass QC "
-          f"(GC 40-60%, G<=25%, homopolymer<=3)")
+          f"(GC 40-60%, G<=20%, homopolymer<=3, leading run<={MAX_LEADING_RUN})")
 
     # Try from requested min_hamming down to 4
     selected: List[str] = []
@@ -146,20 +160,22 @@ def main() -> None:
 
     # ---------- Report ---------
     print(f"\n  Selected {len(selected)} barcodes with min Hamming distance = {actual_min}")
-    print("\n  #   Sequence    GC    G     MaxHP")
-    print("  " + "-" * 37)
+    print("\n  #   Sequence    GC    G     MaxHP  Lead")
+    print("  " + "-" * 44)
     stats_rows = []
     for i, seq in enumerate(selected):
         gc = gc_content(seq)
         gf = g_fraction(seq)
         hp = max_homopolymer(seq)
-        print(f"  {i + 1:2d}  {seq}   {gc:.2f}  {gf:.2f}  {hp}")
+        lead = leading_run(seq)
+        print(f"  {i + 1:2d}  {seq}   {gc:.2f}  {gf:.2f}  {hp}      {lead}")
         stats_rows.append({
             "idx": i,
             "seq": seq,
             "gc_content": round(gc, 4),
             "g_fraction": round(gf, 4),
             "max_homopolymer": hp,
+            "leading_run": lead,
         })
 
     print(f"\n  Min pairwise Hamming distance: {actual_min}")

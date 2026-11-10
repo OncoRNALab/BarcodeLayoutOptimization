@@ -45,7 +45,10 @@ from spatial_zipcodes.sequence_qc import (
     calculate_g_content,
     find_max_homopolymer,
     summarize_junction_homopolymers,
+    terminal_run,
 )
+
+DEFAULT_BAR2 = REPO_ROOT / "HSDB" / "bar2_library" / "spot_barcodes_8nt.txt"
 
 
 def dna_hamming(a: str, b: str) -> int:
@@ -128,6 +131,12 @@ def main() -> None:
         default=str(SCRIPT_DIR),
         help="Output directory",
     )
+    ap.add_argument(
+        "--bar2",
+        default=str(DEFAULT_BAR2),
+        help="bar_2 library used after bar_1; trailing runs of row codes "
+             "leave room for these leading runs",
+    )
     args = ap.parse_args()
 
     config_path = Path(args.config)
@@ -150,6 +159,16 @@ def main() -> None:
     flip_counts = tuple(config.axis_code.flip_counts)
     require_tolerance = config.axis_code.require_tolerance
 
+    bar2_seqs = [line.strip().upper() for line in open(args.bar2) if line.strip()]
+    downstream_start_runs = {base: 0 for base in "ACGT"}
+    for seq in bar2_seqs:
+        base, length = terminal_run(seq, at_end=False)
+        downstream_start_runs[base] = max(downstream_start_runs[base], length)
+    # Leave room for a unit start of every base, so a future bar_2 library
+    # that uses all four starts still fits.
+    for base in "ACGT":
+        downstream_start_runs[base] = max(downstream_start_runs[base], 1)
+
     print(f"Block grid: {block_rows}×{block_cols} = {n_blocks:,} blocks")
     print(
         f"Generation: mode={candidate_mode}, flip_counts={list(flip_counts)}, "
@@ -160,6 +179,7 @@ def main() -> None:
         f"homopolymer≤{homo_max} nt"
         f"{' (junction enforced)' if enforce_junction else ''}"
     )
+    print(f"bar_2 leading runs: {downstream_start_runs}")
 
     encoder = BitToDNAEncoder(
         scheme=config.bit_to_dna.scheme,
@@ -186,6 +206,7 @@ def main() -> None:
         candidate_mode=candidate_mode,
         flip_counts=flip_counts,
         require_tolerance=require_tolerance,
+        downstream_start_runs=downstream_start_runs,
     )
     axis_nt = len(x_seqs[0])
     bar1_len = 2 * axis_nt + len(spacer)
@@ -234,7 +255,7 @@ def main() -> None:
         x_seqs, y_seqs, homo_max, spacer=spacer
     )
     print(
-        f"  Junction homopolymers: max={junction['max_junction_run']}, "
+        f"  X–Y junction homopolymers: max={junction['max_junction_run']}, "
         f"violations={junction['n_violations']}"
     )
     if junction["n_violations"]:
@@ -242,6 +263,20 @@ def main() -> None:
             f"{junction['n_violations']} barcodes violate the junction "
             f"homopolymer limit of {homo_max}"
         )
+
+    n_bar2_bad = 0
+    for bar1 in barcodes:
+        end_base, end_len = terminal_run(bar1, at_end=True)
+        for bar2 in bar2_seqs:
+            start_base, start_len = terminal_run(bar2, at_end=False)
+            if end_base == start_base and end_len + start_len > homo_max:
+                n_bar2_bad += 1
+    if n_bar2_bad:
+        raise RuntimeError(
+            f"{n_bar2_bad} bar_1×bar_2 pairs would exceed the homopolymer "
+            f"limit of {homo_max} at the bar_1/bar_2 junction"
+        )
+    print(f"  bar_1×bar_2 junctions: all {len(barcodes)*len(bar2_seqs):,} pairs OK")
 
     print("\n[Step 3] Validating uniqueness and X+Y structure...")
     n_unique = len(set(barcodes))
@@ -319,6 +354,9 @@ def main() -> None:
         },
         "max_homopolymer": int(max(hp_values)),
         "junction_homopolymers": junction,
+        "downstream_start_runs": downstream_start_runs,
+        "bar2_file": str(Path(args.bar2)),
+        "n_bar2": len(bar2_seqs),
         "spatial_hamming_distance": dist_stats,
         "axis_code_generation": {
             "x_hard_violations": x_verif["hard_constraint_violations"],

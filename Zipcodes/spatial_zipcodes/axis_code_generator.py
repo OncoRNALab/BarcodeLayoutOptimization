@@ -105,6 +105,7 @@ class AxisCodeGenerator:
         spacer: str = "",
         junction_role: Optional[str] = None,
         partner_right_edge: Optional[Dict[str, int]] = None,
+        downstream_start_runs: Optional[Dict[str, int]] = None,
         candidate_mode: str = "random",
         flip_counts: Tuple[int, ...] = (1, 2, 3),
         require_tolerance: bool = False,
@@ -134,6 +135,10 @@ class AxisCodeGenerator:
                 matching column-code edge, would exceed max_homopolymer_length.
             partner_right_edge: For role "right", longest right-edge run of each
                 base across the already chosen column codes (spacer included).
+            downstream_start_runs: Longest leading run of each base among sequences
+                that will be appended after this code (e.g. HSDB bar_2). The
+                code's trailing run plus that start must fit in
+                max_homopolymer_length.
             candidate_mode: "random" (fresh random codes) or "flip" (bit flips
                 of the preceding code). Position 0 is always random.
             flip_counts: Numbers of bits a "flip" candidate may flip, drawn
@@ -166,6 +171,14 @@ class AxisCodeGenerator:
                 "max_homopolymer_length must be at least 2 when the spacer is empty, "
                 "so the column code can leave room for the row code"
             )
+        if downstream_start_runs is not None:
+            if encoder is None:
+                raise ValueError("encoder is required when downstream_start_runs is set")
+            if max_homopolymer_length is None or max_homopolymer_length < 1:
+                raise ValueError(
+                    "max_homopolymer_length must be a positive integer when "
+                    "downstream_start_runs is set"
+                )
         if g_content_max is not None and not 0 <= g_content_max <= 1:
             raise ValueError(f"g_content_max must be in [0, 1], got {g_content_max}")
 
@@ -182,6 +195,7 @@ class AxisCodeGenerator:
         self.spacer = spacer or ""
         self.junction_role = junction_role
         self.partner_right_edge = partner_right_edge or {}
+        self.downstream_start_runs = dict(downstream_start_runs or {})
         self.candidate_mode = candidate_mode
         self.flip_counts = tuple(flip_counts)
         self.require_tolerance = require_tolerance
@@ -193,6 +207,7 @@ class AxisCodeGenerator:
         self.rejected_for_g = 0
         self.rejected_for_homopolymer = 0
         self.rejected_for_junction = 0
+        self.rejected_for_downstream = 0
         
         logger.info(
             f"Initialized AxisCodeGenerator: n={n_positions}, L={bit_length}, "
@@ -326,6 +341,13 @@ class AxisCodeGenerator:
             edge = self.partner_right_edge.get(base, 0)
             if edge > 0 and edge + length > self.max_homopolymer_length:
                 self.rejected_for_junction += 1
+                return False
+
+        if self.downstream_start_runs:
+            base, length = terminal_run(dna, at_end=True)
+            start = self.downstream_start_runs.get(base, 0)
+            if start > 0 and length + start > self.max_homopolymer_length:
+                self.rejected_for_downstream += 1
                 return False
         return True
 
@@ -561,6 +583,7 @@ def generate_axis_codes(
     spacer: str = "",
     junction_role: Optional[str] = None,
     partner_right_edge: Optional[Dict[str, int]] = None,
+    downstream_start_runs: Optional[Dict[str, int]] = None,
     candidate_mode: str = "random",
     flip_counts: Tuple[int, ...] = (1, 2, 3),
     require_tolerance: bool = False,
@@ -586,6 +609,7 @@ def generate_axis_codes(
         spacer: Spacer inserted between the two axis sequences
         junction_role: "left" (column) or "right" (row) junction budget
         partner_right_edge: Right-edge runs of the column codes, for role "right"
+        downstream_start_runs: Leading runs of sequences appended after this code
         candidate_mode: "random" or "flip" (see AxisCodeGenerator)
         flip_counts: Bits flipped per "flip" candidate
         require_tolerance: Backtrack instead of keeping an out-of-tolerance code
@@ -608,6 +632,7 @@ def generate_axis_codes(
         spacer=spacer,
         junction_role=junction_role,
         partner_right_edge=partner_right_edge,
+        downstream_start_runs=downstream_start_runs,
         candidate_mode=candidate_mode,
         flip_counts=flip_counts,
         require_tolerance=require_tolerance,
@@ -638,6 +663,7 @@ def generate_column_and_row_codes(
     candidate_mode: str = "random",
     flip_counts: Tuple[int, ...] = (1, 2, 3),
     require_tolerance: bool = False,
+    downstream_start_runs: Optional[Dict[str, int]] = None,
 ) -> Tuple[List[List[int]], List[List[int]], List[str], List[str], Dict, Dict]:
     """
     Generate column codes, then row codes, with composition enforced.
@@ -646,6 +672,9 @@ def generate_column_and_row_codes(
     When enforce_junction is true, column codes leave at least one legal
     start base and row codes are rejected when they would extend a column
     edge into a junction homopolymer longer than max_homopolymer_length.
+    downstream_start_runs, if set, constrains the trailing run of each row
+    code so a later appended sequence (e.g. HSDB bar_2) cannot extend it
+    past max_homopolymer_length.
     """
     shared = dict(
         target_distances=target_distances,
@@ -675,13 +704,16 @@ def generate_column_and_row_codes(
     x_sequences = [encoder.encode(code) for code in x_codes]
 
     right = dict(shared)
+    if enforce_junction or downstream_start_runs is not None:
+        right["max_homopolymer_length"] = max_homopolymer_length
     if enforce_junction:
         right.update(
-            max_homopolymer_length=max_homopolymer_length,
             spacer=spacer or "",
             junction_role="right",
             partner_right_edge=max_right_edge_by_base(x_sequences, spacer or ""),
         )
+    if downstream_start_runs is not None:
+        right["downstream_start_runs"] = downstream_start_runs
     y_codes, y_verification = generate_axis_codes(
         n_positions=n_rows,
         bit_length=y_bit_length,

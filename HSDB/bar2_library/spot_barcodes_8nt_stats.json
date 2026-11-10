@@ -5,115 +5,131 @@
   "barcodes": [
     {
       "idx": 0,
-      "seq": "AAACACCC",
+      "seq": "ACAAACCC",
       "gc_content": 0.5,
       "g_fraction": 0.0,
-      "max_homopolymer": 3
+      "max_homopolymer": 3,
+      "leading_run": 1
     },
     {
       "idx": 1,
-      "seq": "AACACACG",
+      "seq": "ACACCAAG",
       "gc_content": 0.5,
       "g_fraction": 0.125,
-      "max_homopolymer": 2
+      "max_homopolymer": 2,
+      "leading_run": 1
     },
     {
       "idx": 2,
-      "seq": "AACCGGAA",
+      "seq": "ACCACGTA",
       "gc_content": 0.5,
-      "g_fraction": 0.25,
-      "max_homopolymer": 2
+      "g_fraction": 0.125,
+      "max_homopolymer": 2,
+      "leading_run": 1
     },
     {
       "idx": 3,
-      "seq": "AACGTCGT",
+      "seq": "ACCCATGT",
       "gc_content": 0.5,
-      "g_fraction": 0.25,
-      "max_homopolymer": 2
+      "g_fraction": 0.125,
+      "max_homopolymer": 3,
+      "leading_run": 1
     },
     {
       "idx": 4,
-      "seq": "AAGGCTAC",
+      "seq": "AGCCTACA",
       "gc_content": 0.5,
-      "g_fraction": 0.25,
-      "max_homopolymer": 2
+      "g_fraction": 0.125,
+      "max_homopolymer": 2,
+      "leading_run": 1
     },
     {
       "idx": 5,
-      "seq": "ACAACCGA",
+      "seq": "AGCTCCAT",
       "gc_content": 0.5,
       "g_fraction": 0.125,
-      "max_homopolymer": 2
+      "max_homopolymer": 2,
+      "leading_run": 1
     },
     {
       "idx": 6,
-      "seq": "ACACGATG",
+      "seq": "AGTCCTTC",
       "gc_content": 0.5,
-      "g_fraction": 0.25,
-      "max_homopolymer": 1
+      "g_fraction": 0.125,
+      "max_homopolymer": 2,
+      "leading_run": 1
     },
     {
       "idx": 7,
-      "seq": "ACCAAGTC",
+      "seq": "ATCGTCTC",
       "gc_content": 0.5,
       "g_fraction": 0.125,
-      "max_homopolymer": 2
+      "max_homopolymer": 1,
+      "leading_run": 1
     },
     {
       "idx": 8,
-      "seq": "ACCTGTCT",
+      "seq": "ATGTCACC",
       "gc_content": 0.5,
       "g_fraction": 0.125,
-      "max_homopolymer": 2
+      "max_homopolymer": 2,
+      "leading_run": 1
     },
     {
       "idx": 9,
-      "seq": "ACGGAACA",
+      "seq": "ATTCGCCT",
       "gc_content": 0.5,
-      "g_fraction": 0.25,
-      "max_homopolymer": 2
+      "g_fraction": 0.125,
+      "max_homopolymer": 2,
+      "leading_run": 1
     },
     {
       "idx": 10,
-      "seq": "ACGTTCAG",
+      "seq": "CAAACAGC",
       "gc_content": 0.5,
-      "g_fraction": 0.25,
-      "max_homopolymer": 2
+      "g_fraction": 0.125,
+      "max_homopolymer": 3,
+      "leading_run": 1
     },
     {
       "idx": 11,
-      "seq": "ACTCTTGC",
+      "seq": "CAACACTG",
       "gc_content": 0.5,
       "g_fraction": 0.125,
-      "max_homopolymer": 2
+      "max_homopolymer": 2,
+      "leading_run": 1
     },
     {
       "idx": 12,
-      "seq": "AGTAGCAC",
+      "seq": "CACAAGCT",
       "gc_content": 0.5,
-      "g_fraction": 0.25,
-      "max_homopolymer": 1
+      "g_fraction": 0.125,
+      "max_homopolymer": 2,
+      "leading_run": 1
     },
     {
       "idx": 13,
-      "seq": "AGTCCGTT",
+      "seq": "CACCCTAA",
       "gc_content": 0.5,
-      "g_fraction": 0.25,
-      "max_homopolymer": 2
+      "g_fraction": 0.0,
+      "max_homopolymer": 3,
+      "leading_run": 1
     },
     {
       "idx": 14,
-      "seq": "CAAAGAGC",
+      "seq": "CAGTTCAC",
       "gc_content": 0.5,
-      "g_fraction": 0.25,
-      "max_homopolymer": 3
+      "g_fraction": 0.125,
+      "max_homopolymer": 2,
+      "leading_run": 1
     },
     {
       "idx": 15,
-      "seq": "CAAGCGTA",
+      "seq": "CGCTAATC",
       "gc_content": 0.5,
-      "g_fraction": 0.25,
-      "max_homopolymer": 2
+      "g_fraction": 0.125,
+      "max_homopolymer": 2,
+      "leading_run": 1
     }
   ]
 }

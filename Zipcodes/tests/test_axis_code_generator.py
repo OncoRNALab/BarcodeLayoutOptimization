@@ -222,6 +222,27 @@ class TestFlipCandidates(unittest.TestCase):
             self.assertLessEqual(calculate_g_content(encoder.encode(code)), 0.25)
         self.assertEqual(verification["positions_outside_tolerance"], 0)
 
+    def test_downstream_start_runs_cap_trailing_edge(self):
+        from spatial_zipcodes.sequence_qc import terminal_run
+
+        encoder = BitToDNAEncoder(scheme="2-bits-per-base", mapping=PRINTED_MAPPING)
+        generator = AxisCodeGenerator(
+            n_positions=1,
+            bit_length=6,
+            target_distances=[1, 1, 1, 1],
+            far_features_min_distance=1,
+            encoder=encoder,
+            max_homopolymer_length=3,
+            downstream_start_runs={"A": 1, "C": 1, "G": 1, "T": 1},
+        )
+        # AAA leaves no room for a following A.
+        self.assertFalse(generator._passes_composition([0, 0, 0, 0, 0, 0]))
+        self.assertEqual(generator.rejected_for_downstream, 1)
+        # AAC ends with a single C, so a following C still fits.
+        self.assertTrue(generator._passes_composition([0, 0, 0, 0, 0, 1]))
+        base, length = terminal_run(encoder.encode([0, 0, 0, 0, 0, 1]), at_end=True)
+        self.assertEqual((base, length), ("C", 1))
+
 
 class TestCompositionFilters(unittest.TestCase):
     """G content is rejected before distances are scored."""

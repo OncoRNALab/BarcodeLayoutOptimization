@@ -21,7 +21,7 @@ All sizes use the **same 36 nt barcode format** — only the bar_1 library diffe
 - **bar_1**: unique per block. Axis codes are generated in **flip mode** (each candidate is the preceding code with a few bit flips). Soft distance targets and the far-code minimum are enforced with `require_tolerance`. G content and junction homopolymers are rejected **inside** the candidate loop. There is no post-hoc G→T rewrite.
 - **bar_2**: 16 fixed 8-nt sequences, reused in every block, min Hamming distance = 5, G ≤ 20%, homopolymer ≤ 3 (enforced during selection).
 - Every `(bar_1, bar_2)` pair is globally unique by construction.
-- Combined barcodes keep G ≤ 25%. Homopolymers at the bar_1/bar_2 junction can still exceed 3 nt.
+- Combined barcodes keep G ≤ 25%. Homopolymers are ≤ 3 nt everywhere, including the bar_1/bar_2 junction (bar_2 leading runs ≤ 1; bar_1 endings leave room; the layout only assigns safe pairs).
 
 ## Decoding strategy
 

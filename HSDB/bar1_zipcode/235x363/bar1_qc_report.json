@@ -14,12 +14,12 @@
   "require_tolerance": true,
   "g_content_max_per_axis": 0.25,
   "g_content": {
-    "mean": 0.165,
+    "mean": 0.1656,
     "max": 0.2143,
     "n_above_cap": 0
   },
   "gc_content": {
-    "mean": 0.4529,
+    "mean": 0.4474,
     "min": 0.1786,
     "max": 0.6071
   },
@@ -31,12 +31,20 @@
     "max_length": 3,
     "examples": []
   },
+  "downstream_start_runs": {
+    "A": 1,
+    "C": 1,
+    "G": 1,
+    "T": 1
+  },
+  "bar2_file": "/Users/fpomasot/Documents/barcode_design/HSDB/bar2_library/spot_barcodes_8nt.txt",
+  "n_bar2": 16,
   "spatial_hamming_distance": {
     "adjacent_min": 1,
     "adjacent_mean": 1.93,
     "adjacent_max": 2,
     "far_min": 5,
-    "far_mean": 9.66,
+    "far_mean": 9.6,
     "far_max": 14
   },
   "axis_code_generation": {
