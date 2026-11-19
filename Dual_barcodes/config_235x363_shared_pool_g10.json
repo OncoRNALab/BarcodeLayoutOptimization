@@ -1,0 +1,31 @@
+{
+  "description": "Pseudo-replicate of the printed Dual layout: same shared predefined library and 4×4 blocks, with combined G<10% and HP≤5.",
+  "array_dimensions": {
+    "rows": 235,
+    "columns": 363,
+    "total_spots": 85305
+  },
+  "grid_configuration": {
+    "block_size": 4
+  },
+  "barcode_configuration": {
+    "mode": "shared_pool",
+    "barcode_file": "../inhouse_barcodes/bar_1in1_column_major_first18.txt",
+    "barcode_length_per_segment": 18,
+    "full_barcode_length": 36
+  },
+  "sequence_qc": {
+    "g_content_max": 0.10,
+    "max_homopolymer_length": 5
+  },
+  "output": {
+    "layout_file": "layout_235x363_dual_shared_pool_g10.csv",
+    "visualization_file": "layout_235x363_dual_shared_pool_g10_viz.png",
+    "statistics_file": "layout_235x363_dual_shared_pool_g10_stats.json"
+  },
+  "random_seed": 43,
+  "notes": [
+    "Seed 43 (not 42) so this is a pseudo-replicate, not a bit-identical reprint.",
+    "Same library and 4×4 structure as the manuscript Dual design; only QC differs."
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "description": "New Dual method: fixed distance-designed bar_2 repertoire, 8×8 blocks, G<10%, HP≤5.",
+  "array_dimensions": {
+    "rows": 235,
+    "columns": 363,
+    "total_spots": 85305
+  },
+  "grid_configuration": {
+    "block_size": 8
+  },
+  "barcode_configuration": {
+    "mode": "fixed_bar2",
+    "barcode_length_per_segment": 18,
+    "full_barcode_length": 36,
+    "require_full_bar2_compatibility": true,
+    "bar2": {
+      "n": 64,
+      "min_hamming": 6,
+      "n_candidates": 400000,
+      "out": "bar2_repertoire_8x8_18nt_g10.txt"
+    },
+    "bar1": {
+      "source": "generate",
+      "n": 1500,
+      "out": "bar1_pool_18nt_g10_compatible_8x8.txt"
+    }
+  },
+  "sequence_qc": {
+    "g_content_max": 0.10,
+    "max_homopolymer_length": 5,
+    "max_leading": 1
+  },
+  "output": {
+    "layout_file": "layout_235x363_dual_fixed_bar2_8x8_g10.csv",
+    "visualization_file": "layout_235x363_dual_fixed_bar2_8x8_g10_viz.png",
+    "statistics_file": "layout_235x363_dual_fixed_bar2_8x8_g10_stats.json"
+  },
+  "random_seed": 42,
+  "notes": [
+    "8×8 → 30×46 = 1,380 blocks; n_bar2 = 64.",
+    "min_hamming starts at 6 (64 codes of 18 nt under G<10% is tight for 8)."
+  ]
+}

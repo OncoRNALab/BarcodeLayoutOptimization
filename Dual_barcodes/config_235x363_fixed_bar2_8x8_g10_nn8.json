@@ -1,0 +1,47 @@
+{
+  "description": "Dual fixed_bar2 8×8 targeting combined NN≈8: bar2 minH≥8, bar1 minH≥8, G<10%, HP≤5.",
+  "array_dimensions": {
+    "rows": 235,
+    "columns": 363,
+    "total_spots": 85305
+  },
+  "grid_configuration": {
+    "block_size": 8
+  },
+  "barcode_configuration": {
+    "mode": "fixed_bar2",
+    "barcode_length_per_segment": 18,
+    "full_barcode_length": 36,
+    "require_full_bar2_compatibility": true,
+    "bar2": {
+      "n": 64,
+      "min_hamming": 8,
+      "n_candidates": 500000,
+      "file": "bar2_repertoire_8x8_18nt_g10_nn8.txt",
+      "out": "bar2_repertoire_8x8_18nt_g10_nn8.txt"
+    },
+    "bar1": {
+      "source": "generate",
+      "n": 1400,
+      "min_hamming": 8,
+      "max_attempts_factor": 2000,
+      "candidate_pool_factor": 60,
+      "out": "bar1_pool_18nt_g10_compatible_8x8_nn8.txt"
+    }
+  },
+  "sequence_qc": {
+    "g_content_max": 0.10,
+    "max_homopolymer_length": 5,
+    "max_leading": 1
+  },
+  "output": {
+    "layout_file": "layout_235x363_dual_fixed_bar2_8x8_g10_nn8.csv",
+    "visualization_file": "layout_235x363_dual_fixed_bar2_8x8_g10_nn8_viz.png",
+    "statistics_file": "layout_235x363_dual_fixed_bar2_8x8_g10_nn8_stats.json"
+  },
+  "random_seed": 42,
+  "notes": [
+    "NN≈8 redesign: bar1 and bar2 both min Hamming 8.",
+    "8×8 → 30×46 = 1,380 blocks; n_bar2 = 64."
+  ]
+}

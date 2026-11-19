@@ -1,0 +1,39 @@
+{
+  "description": "Dual 235×363 with fixed distance-designed bar_2 repertoire, G<10%, HP≤5",
+  "array_dimensions": {
+    "rows": 235,
+    "columns": 363,
+    "total_spots": 85305
+  },
+  "grid_configuration": {
+    "block_size": 4
+  },
+  "barcode_configuration": {
+    "mode": "fixed_bar2",
+    "barcode_length_per_segment": 18,
+    "full_barcode_length": 36,
+    "require_full_bar2_compatibility": true,
+    "bar2": {
+      "n": 16,
+      "min_hamming": 8,
+      "n_candidates": 300000,
+      "out": "bar2_repertoire_4x4_18nt_g10.txt"
+    },
+    "bar1": {
+      "source": "generate",
+      "n": 5500,
+      "out": "bar1_pool_18nt_g10_compatible.txt"
+    }
+  },
+  "sequence_qc": {
+    "g_content_max": 0.10,
+    "max_homopolymer_length": 5,
+    "max_leading": 1
+  },
+  "output": {
+    "layout_file": "layout_235x363_dual_fixed_bar2_g10.csv",
+    "visualization_file": "layout_235x363_dual_fixed_bar2_g10_viz.png",
+    "statistics_file": "layout_235x363_dual_fixed_bar2_g10_stats.json"
+  },
+  "random_seed": 42
+}
