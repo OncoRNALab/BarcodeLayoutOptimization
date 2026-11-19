@@ -130,6 +130,7 @@ class AxisCodeConfig:
     
     max_attempts_per_position: int = 10000
     backtrack_depth: int = 5
+    max_backtracks: int = 100
     random_seed: Optional[int] = None
     tolerance: float = 0.5  # Tolerance for soft constraint violations
     candidate_mode: str = "random"  # "random" or "flip" (bit flips of the preceding code)

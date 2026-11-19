@@ -111,6 +111,7 @@ def main():
                 enforce_junction=enforce_junction,
                 max_attempts_per_position=config.axis_code.max_attempts_per_position,
                 backtrack_depth=config.axis_code.backtrack_depth,
+                max_backtracks=getattr(config.axis_code, "max_backtracks", 100),
                 tolerance=config.axis_code.tolerance,
                 random_seed=config.axis_code.random_seed,
                 candidate_mode=config.axis_code.candidate_mode,

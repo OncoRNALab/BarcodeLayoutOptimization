@@ -97,6 +97,7 @@ class AxisCodeGenerator:
         far_features_min_distance: int,
         max_attempts_per_position: int = 10000,
         backtrack_depth: int = 5,
+        max_backtracks: int = 100,
         tolerance: float = 0.5,
         random_seed: Optional[int] = None,
         encoder=None,
@@ -120,6 +121,7 @@ class AxisCodeGenerator:
             far_features_min_distance: Minimum distance for positions >= 5 apart
             max_attempts_per_position: Max random samples per position before backtracking
             backtrack_depth: Number of positions to backtrack when stuck
+            max_backtracks: Maximum number of backtrack events before giving up
             tolerance: Tolerance for soft constraint violations (fraction)
             random_seed: Random seed for reproducibility
             encoder: Bit-to-DNA encoder. Required when a G cap or junction
@@ -188,6 +190,7 @@ class AxisCodeGenerator:
         self.far_features_min_distance = far_features_min_distance
         self.max_attempts = max_attempts_per_position
         self.backtrack_depth = backtrack_depth
+        self.max_backtracks = max_backtracks
         self.tolerance = tolerance
         self.encoder = encoder
         self.g_content_max = g_content_max
@@ -457,7 +460,6 @@ class AxisCodeGenerator:
         self._blocked_counts = {base: 0 for base in "ACGT"}
         position = 0
         backtrack_count = 0
-        max_backtracks = 100
         
         logger.info(f"Starting axis code generation for {self.n_positions} positions...")
         
@@ -474,9 +476,9 @@ class AxisCodeGenerator:
             else:
                 # Backtrack
                 backtrack_count += 1
-                if backtrack_count > max_backtracks:
+                if backtrack_count > self.max_backtracks:
                     raise RuntimeError(
-                        f"Failed to generate codes: exceeded {max_backtracks} backtracks"
+                        f"Failed to generate codes: exceeded {self.max_backtracks} backtracks"
                     )
                 
                 backtrack_amount = min(self.backtrack_depth, position)
@@ -575,6 +577,7 @@ def generate_axis_codes(
     far_features_min_distance: int,
     max_attempts_per_position: int = 10000,
     backtrack_depth: int = 5,
+    max_backtracks: int = 100,
     tolerance: float = 0.5,
     random_seed: Optional[int] = None,
     encoder=None,
@@ -601,6 +604,7 @@ def generate_axis_codes(
         far_features_min_distance: Minimum distance for positions >= 5 apart
         max_attempts_per_position: Max random samples per position
         backtrack_depth: Number of positions to backtrack when stuck
+        max_backtracks: Maximum number of backtrack events before giving up
         tolerance: Tolerance for soft constraint violations
         random_seed: Random seed for reproducibility
         encoder: Bit-to-DNA encoder used for composition checks
@@ -624,6 +628,7 @@ def generate_axis_codes(
         far_features_min_distance=far_features_min_distance,
         max_attempts_per_position=max_attempts_per_position,
         backtrack_depth=backtrack_depth,
+        max_backtracks=max_backtracks,
         tolerance=tolerance,
         random_seed=random_seed,
         encoder=encoder,
@@ -658,6 +663,7 @@ def generate_column_and_row_codes(
     enforce_junction: bool = True,
     max_attempts_per_position: int = 10000,
     backtrack_depth: int = 5,
+    max_backtracks: int = 100,
     tolerance: float = 0.5,
     random_seed: Optional[int] = None,
     candidate_mode: str = "random",
@@ -681,6 +687,7 @@ def generate_column_and_row_codes(
         far_features_min_distance=far_features_min_distance,
         max_attempts_per_position=max_attempts_per_position,
         backtrack_depth=backtrack_depth,
+        max_backtracks=max_backtracks,
         tolerance=tolerance,
         encoder=encoder,
         g_content_max=g_content_max,

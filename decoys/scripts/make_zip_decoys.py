@@ -42,11 +42,28 @@ def bits_to_dna(bits):
     return "".join(BITS_TO_BASE[(int(bits[i]), int(bits[i + 1]))] for i in range(0, len(bits), 2))
 
 
+def g_fraction(seq):
+    return seq.count("G") / len(seq) if seq else 0.0
+
+
+def max_homopolymer(seq):
+    if not seq:
+        return 0
+    m = c = 1
+    for i in range(1, len(seq)):
+        c = c + 1 if seq[i] == seq[i - 1] else 1
+        m = max(m, c)
+    return m
+
+
 def read_axis_codes(path, seg):
     cols, rows = {}, {}
     with open(path) as handle:
-        for rec in csv.DictReader(handle):
-            seq = rec["barcode"].strip().upper()
+        reader = csv.DictReader(handle)
+        fields = reader.fieldnames or []
+        seq_key = "barcode" if "barcode" in fields else "combined"
+        for rec in reader:
+            seq = rec[seq_key].strip().upper()
             cols.setdefault(int(rec["col"]), seq[:seg])
             rows.setdefault(int(rec["row"]), seq[seg:])
             if cols[int(rec["col"])] != seq[:seg] or rows[int(rec["row"])] != seq[seg:]:
@@ -96,7 +113,24 @@ def pick_gaps(n_codes, n_virtual, spacing="linspace"):
     return gaps
 
 
-def make_virtual_code(codes, gap, stats, taken, rng, n_candidates):
+def combined_passes_qc(axis_dna, opposite_codes, g_max, max_hp, virtual_is_column):
+    """True if every pairing of this virtual axis DNA with opposite real codes passes QC."""
+    if g_max is None and max_hp is None:
+        return True
+    if g_fraction(axis_dna) > (g_max if g_max is not None else 1.0):
+        # half already over budget; combined will be worse or equal on G only if other half has 0 G
+        pass
+    for other in opposite_codes:
+        combined = (axis_dna + other) if virtual_is_column else (other + axis_dna)
+        if g_max is not None and g_fraction(combined) > g_max:
+            return False
+        if max_hp is not None and max_homopolymer(combined) > max_hp:
+            return False
+    return True
+
+
+def make_virtual_code(codes, gap, stats, taken, rng, n_candidates,
+                      g_max=None, max_hp=None, opposite_dna=None, virtual_is_column=True):
     """Best random code for a virtual position between codes[gap] and codes[gap+1]."""
     n, n_bits = codes.shape
     near_min = stats[1]["min"]
@@ -117,7 +151,7 @@ def make_virtual_code(codes, gap, stats, taken, rng, n_candidates):
     flips = rng.choice(offsets, size=n_candidates)
     cand = parents.copy()
     for k in range(n_candidates):
-        pos = rng.choice(n_bits, size=flips[k], replace=False)
+        pos = rng.choice(n_bits, size=int(flips[k]), replace=False)
         cand[k, pos] ^= 1
 
     d_all = (cand[:, None, :] != codes[None, :, :]).sum(-1)
@@ -127,6 +161,20 @@ def make_virtual_code(codes, gap, stats, taken, rng, n_candidates):
     if taken:
         d_taken = (cand[:, None, :] != np.array(taken)[None, :, :]).sum(-1)
         ok &= (d_taken >= near_min).all(1)
+    if g_max is not None or max_hp is not None:
+        opposite = opposite_dna or []
+        for k in range(n_candidates):
+            if not ok[k]:
+                continue
+            dna = bits_to_dna(cand[k])
+            if g_max is not None and g_fraction(dna) > g_max:
+                ok[k] = False
+                continue
+            if max_hp is not None and max_homopolymer(dna) > max_hp:
+                ok[k] = False
+                continue
+            if opposite and not combined_passes_qc(dna, opposite, g_max, max_hp, virtual_is_column):
+                ok[k] = False
     if not ok.any():
         raise RuntimeError(f"No valid virtual code found for gap {gap}; increase --candidates")
 
@@ -136,7 +184,8 @@ def make_virtual_code(codes, gap, stats, taken, rng, n_candidates):
     return cand[best], d_all[best, near_idx].tolist(), near_target.tolist()
 
 
-def build_axis(codes_dna, n_virtual, rng, n_candidates, label, spacing="linspace"):
+def build_axis(codes_dna, n_virtual, rng, n_candidates, label, spacing="linspace",
+               g_max=None, max_hp=None, opposite_dna=None, virtual_is_column=True):
     codes = np.array([dna_to_bits(s) for s in codes_dna], dtype=np.int8)
     for s in codes_dna:
         if bits_to_dna(dna_to_bits(s)) != s:
@@ -146,7 +195,11 @@ def build_axis(codes_dna, n_virtual, rng, n_candidates, label, spacing="linspace
     virtual, report, taken = [], [], []
     for i, gap in enumerate(gaps, start=1):
         print(f"  {label} virtual {i}/{n_virtual} at gap {int(gap)}", flush=True)
-        code, dists, targets = make_virtual_code(codes, int(gap), stats, taken, rng, n_candidates)
+        code, dists, targets = make_virtual_code(
+            codes, int(gap), stats, taken, rng, n_candidates,
+            g_max=g_max, max_hp=max_hp,
+            opposite_dna=opposite_dna, virtual_is_column=virtual_is_column,
+        )
         taken.append(code)
         virtual.append((int(gap), bits_to_dna(code)))
         report.append({"gap": int(gap), "distances_to_near_real": dists, "targets": targets})
@@ -162,6 +215,9 @@ def main():
     parser.add_argument("--n-virtual-rows", type=int, default=None, help="Override number of virtual row codes")
     parser.add_argument("--spacing", choices=("linspace", "bresenham"), default="linspace")
     parser.add_argument("--candidates", type=int, default=4000, help="Random candidates per virtual code")
+    parser.add_argument("--g-max", type=float, default=None,
+                        help="Max G fraction on virtual axis DNA (e.g. 0.10)")
+    parser.add_argument("--max-homopolymer", type=int, default=None)
     parser.add_argument("--seed", type=int, default=2026)
     parser.add_argument("--out-dir", required=True)
     args = parser.parse_args()
@@ -181,9 +237,13 @@ def main():
         n_virtual_rows = args.n_virtual_rows
 
     virtual_cols, col_stats, col_report = build_axis(
-        col_codes, n_virtual_cols, rng, args.candidates, "column", spacing=args.spacing)
+        col_codes, n_virtual_cols, rng, args.candidates, "column",
+        spacing=args.spacing, g_max=args.g_max, max_hp=args.max_homopolymer,
+        opposite_dna=row_codes, virtual_is_column=True)
     virtual_rows, row_stats, row_report = build_axis(
-        row_codes, n_virtual_rows, rng, args.candidates, "row", spacing=args.spacing)
+        row_codes, n_virtual_rows, rng, args.candidates, "row",
+        spacing=args.spacing, g_max=args.g_max, max_hp=args.max_homopolymer,
+        opposite_dna=col_codes, virtual_is_column=False)
 
     real_set = {c + r for c in col_codes for r in row_codes}
     decoys = []
@@ -221,6 +281,8 @@ def main():
         "candidates_per_virtual_code": args.candidates,
         "n_real": len(real_set),
         "spacing": args.spacing,
+        "g_max": args.g_max,
+        "max_homopolymer": args.max_homopolymer,
         "n_virtual_columns": len(virtual_cols),
         "n_virtual_rows": len(virtual_rows),
         "n_decoys": len(decoys),

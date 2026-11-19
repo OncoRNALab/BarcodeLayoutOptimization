@@ -2,18 +2,16 @@
 """
 Phase 1 — Generate 16 spot barcodes (bar_2) for the HSDB design.
 
-Selects 16 barcodes of 8 nt with:
+Selects 16 barcodes (default 12 nt) with:
   - Minimum pairwise Hamming distance >= MIN_HAMMING (target >= 5, fallback to 4)
   - GC content 40–60%
-  - G content <= 20%  (max 2 G's in 8 nt, per Idea 3 constraint)
-  - No homopolymer run > 3 nt
+  - G content <= 20% by default (use --g-max 0 for no G)
+  - No homopolymer run longer than the configured limit
   - Leading run <= 1 nt, so appending bar_2 cannot extend a bar_1 ending
-    of length 2 into a run longer than 3
+    past the homopolymer limit
 
 These 16 barcodes are the fixed bar_2 set, reused in every block.
 Global uniqueness of each spot is guaranteed by the unique bar_1 of its block.
-
-Outputs: spot_barcodes_8nt.txt (one sequence per line)
 """
 
 import argparse
@@ -23,7 +21,7 @@ import sys
 from pathlib import Path
 from typing import List, Tuple
 
-BARCODE_LEN = 8
+BARCODE_LEN = 12
 N_BARCODES = 16
 BASES = "ACGT"
 MAX_LEADING_RUN = 1
@@ -113,7 +111,7 @@ def main() -> None:
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    ap.add_argument("--out", default=str(Path(__file__).parent / "spot_barcodes_8nt.txt"),
+    ap.add_argument("--out", default=str(Path(__file__).parent / "spot_barcodes_12nt.txt"),
                     help="Output path for the selected barcodes (default: same dir as script)")
     ap.add_argument("--min-hamming", type=int, default=5,
                     help="Target minimum pairwise Hamming distance (default 5; "

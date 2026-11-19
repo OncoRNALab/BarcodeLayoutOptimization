@@ -17,7 +17,7 @@ post-hoc G→T / homopolymer rewrites are gone; they broke the X+Y structure
 and the distance gradient.
 
 Outputs (written to --out-dir):
-  - bar1_barcodes_28nt.txt   : sequences in row-major block order
+  - bar1_barcodes.txt        : sequences in row-major block order
   - bar1_codebook.csv        : block_row, block_col, bar_1
   - bar1_qc_report.json      : QC and distance statistics
   - intermediate/axis_codes.json
@@ -48,7 +48,7 @@ from spatial_zipcodes.sequence_qc import (
     terminal_run,
 )
 
-DEFAULT_BAR2 = REPO_ROOT / "HSDB" / "bar2_library" / "spot_barcodes_8nt.txt"
+DEFAULT_BAR2 = REPO_ROOT / "HSDB" / "bar2_library" / "spot_barcodes_12nt_g0.txt"
 
 
 def dna_hamming(a: str, b: str) -> int:
@@ -201,6 +201,7 @@ def main() -> None:
         enforce_junction=enforce_junction,
         max_attempts_per_position=config.axis_code.max_attempts_per_position,
         backtrack_depth=config.axis_code.backtrack_depth,
+        max_backtracks=getattr(config.axis_code, "max_backtracks", 100),
         tolerance=config.axis_code.tolerance,
         random_seed=config.axis_code.random_seed,
         candidate_mode=candidate_mode,
@@ -316,10 +317,16 @@ def main() -> None:
     )
     print(f"  Max homopolymer: {max(hp_values)}")
 
-    txt_path = out_dir / "bar1_barcodes_28nt.txt"
+    txt_path = out_dir / "bar1_barcodes.txt"
     with open(txt_path, "w") as fh:
         for seq in barcodes:
             fh.write(seq + "\n")
+    # Legacy alias kept for older scripts that expect the 28nt filename.
+    legacy = out_dir / "bar1_barcodes_28nt.txt"
+    if not legacy.exists() or legacy.resolve() != txt_path.resolve():
+        with open(legacy, "w") as fh:
+            for seq in barcodes:
+                fh.write(seq + "\n")
     print(f"\nWrote barcodes       → {txt_path}")
 
     csv_path = out_dir / "bar1_codebook.csv"
