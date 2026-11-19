@@ -49,13 +49,24 @@ Thumbs.db
 # *.pdf
 
 # Simulated reads (regenerable, too large for git)
+# Large files are deposited on Zenodo (see docs/ZENODO.md)
 *.fastq
 *.fastq.gz
 sim_reads/
 *_read_L36zip*.txt
 *_readL36zip*.txt
 
+# Simulation read outputs (too large; regenerate with simulation/make_reads.py)
+simulation/output/
+# Companion plain-text read dumps (generated alongside FASTQs)
+simulation/output/*.txt
+
 # HPC scheduler logs
 *.e[0-9]*
 *.o[0-9]*
 slurm-*.out
+
+# Intermediate large Zipcode outputs that are too big to track
+Zipcodes/output_*/intermediate/
+Zipcodes/output_768x1024_*/
+Zipcodes/output_470x726_*/

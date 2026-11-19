@@ -2,6 +2,17 @@
 
 Read this first. It is the entry point for any agent or new collaborator working in this repository.
 
+## Branch policy
+
+| Branch | Purpose |
+|--------|---------|
+| **`main`** | Living toolkit. Four NN≈8 redesigned arrays are the current designs. Use for all new work. |
+| **`manuscript`** | **Frozen.** Printed layouts (Dual, Zipcodes, Greedy) + structure-matched decoys to reproduce the BMC Bioinformatics paper. See `REPRODUCE.md` on that branch. Do not add new design work here. |
+
+Large files (simulated FASTQs, oversized intermediates) are **not in git**. See [`docs/ZENODO.md`](docs/ZENODO.md) for what is deposited on Zenodo and how to obtain it.
+
+---
+
 ## What this project is
 
 This repository designs **spatial barcode layouts** for photolithographic (maskless, MAS 2.0) spatial-transcriptomics arrays. It also generates the **decoy whitelists** used to estimate decoding precision on printed arrays.
@@ -13,28 +24,52 @@ This repository designs **spatial barcode layouts** for photolithographic (maskl
 
 The work is published in a BMC Bioinformatics manuscript, which lives outside this repo at `~/Documents/phd_thesis_revision/layoutopt_manuscript/`. `docs/methods.md` is an excerpt of its Methods and is the **authoritative description** of the printed designs and decoys. If code or older READMEs disagree with `docs/methods.md`, trust `docs/methods.md`, then the data, then the code.
 
+## Current four NN≈8 arrays (`main`)
+
+The active designs on `main`. Full documentation in [`docs/NewFourArrays_Summary.md`](docs/NewFourArrays_Summary.md).
+
+| Array | Layout | Real NN μ |
+|-------|--------|-----------|
+| Dual shared_pool minH6 | `Dual_barcodes/layout_235x363_dual_shared_pool_g10_minH6.csv` | **8.6** |
+| Dual fixed_bar2 8×8 | `Dual_barcodes/layout_235x363_dual_fixed_bar2_8x8_g10_nn8.csv` | 7.0 |
+| Zipcodes flip | `Zipcodes/output_235x363_flip_g10_h5_d12-16_far10/` | 7.0 |
+| HSDB colored | `HSDB/outputs/235x363_g10_h5_d12-16_far8_24+12_nn8_colored/` | 8.0 |
+
+## Printed layouts (`manuscript` branch / `data/1in1/`)
+
+Three layouts were printed and described in the BMC paper. Their ground-truth files are in `data/1in1/` on **both** branches. The `manuscript` branch also carries their structure-matched decoys. See `docs/methods.md` for the authoritative description.
+
+| Method | File | Real NN μ |
+|--------|------|-----------|
+| Dual 4×4 | `data/1in1/layout_235x363_dual_4x4.csv` | 10.0 |
+| Zipcodes | `data/1in1/layout_235x363_zipcodes_nosep.csv` | 6.6 |
+| Greedy | `data/1in1/layout_235x363_randombarcodes_opt_coords.csv` | 14.5 |
+| Dual half-density | `data/1in2/layout_1in2_dual_4x4.csv` | — |
+
 ## Methods in this repository
 
 All methods are first-class, and none are archived. Three were printed and appear in the manuscript. The others are kept for future work.
 
 | Folder | Method | Status |
 |---|---|---|
-| `Dual_barcodes/` | Dual barcodes: 4×4 blocks share bar_1 | Printed at full and half density (manuscript) |
-| `Zipcodes/` | Zipcodes: [column code][row code] | Printed at full density (manuscript) |
+| `Dual_barcodes/` | Dual barcodes: 4×4 blocks share bar_1 | Printed at full and half density (manuscript); redesigned with minH6 and fixed_bar2 on `main` |
+| `Zipcodes/` | Zipcodes: [column code][row code] | Printed at full density (manuscript); flip-mode NN≈8 redesign on `main` |
 | *(not in this repo)* | Greedy + 2-OPT (BarLay, GPU; third-party baseline) | Printed at full density (manuscript). The algorithm belongs to a **separate repository** that was not developed in this project; only its printed layout and decoy pool are kept here |
+| `HSDB/` | Hierarchical Spatial Dual Barcodes (24-nt Zipcode bar_1 + 12-nt bar_2) | NN≈8 colored design on `main`; not printed |
 | `Quadtree/` | Hierarchical quadtree + RLL, hybrid 24 nt + 12 nt | Layouts exist; printed variant `data/1in1/layout_235x363_quadtree_8x3_12nt.*`; **excluded from the manuscript** |
-| `HSDB/` | Hierarchical Spatial Dual Barcodes (28-nt Zipcode bar_1 + 8-nt bar_2, G ≤ 25%) | Designed, not printed. bar_1 now uses flip-mode Zipcodes with G/junction enforced in the candidate loop (see below) |
+| `HSDB/` | Hierarchical Spatial Dual Barcodes (24-nt Zipcode bar_1 + 12-nt bar_2 = 36 nt) | Designed, not printed. bar_1 uses flip-mode Zipcodes with G/junction enforced in the candidate loop (see below) |
 | `inhouse_barcodes/` | Random barcode libraries (filtered random 36-nt pool and its 12/18-nt prefixes and suffixes) | Input for Dual, Quadtree and decoys |
 | `decoys/` | Structure-matched decoy generation + QC | Used for every manuscript precision estimate |
 | `figures/` | Early 118×182 schematic figures | Historical |
 
-### Dual barcodes (printed)
-- **Layout:** 59 × 91 = 5,369 blocks of 4×4, with truncated blocks at the bottom and right edges. Barcode = bar_1 (18 nt, shared within a block) + bar_2 (18 nt).
-- **Library:** both halves come from one library, `inhouse_barcodes/bar_1in1_column_major_first18.txt` (85,305 sequences; the 18-nt prefixes of the filtered random 36-nt pool).
-- **Assignment:** each block's bar_1 is the least-used sequence, so all 5,369 block IDs are distinct. bar_2 is drawn at random, excluding codes already paired with that block's bar_1. bar_2 codes are reused across blocks.
-- **Composition:** no filter was applied to the concatenated barcode. It has up to 42% G, and homopolymers of up to 6 nt at the junction.
-- **Code:** `Dual_barcodes/generate_layout_235x363.py` (config `data/1in1/config_files/dual_config_235x363.json`, seed 42). Half-density checkerboard: `Dual_barcodes/generate_checkerboard_235x363.py` / `dual_checkerboard_layout.py`.
-- **Half density:** the first 117 rows of the full-density layout (117 × 363 = 42,471), placed where x + y is even. Printer coordinates are y = col + 4, and x = 4 + 2·row for even columns or 5 + 2·row for odd columns. A 4×4 block occupies an 8×4 printer window.
+### Dual barcodes (printed + redesigned)
+- **Layout:** blocks of size \(B \times B\) (printed: **4×4**; 59 × 91 = 5,369 blocks on 235×363, edge blocks truncated). Barcode = bar_1 + bar_2.
+- **Modes** (`Dual_barcodes/generate_layout_235x363.py`):
+  - **`shared_pool` (legacy / printed):** one predefined half library for both halves (`inhouse_barcodes/bar_1in1_column_major_first18.txt`). No combined G/HP filter. Config `Dual_barcodes/config_235x363.json`.
+  - **`fixed_bar2` (new):** `n_bar2 = B²` distance-designed repertoire (min Hamming), reused in every block; bar_1 from file or generated and filtered for compatibility with the bar_2 set; optional `sequence_qc` on combined barcodes. Config `Dual_barcodes/config_235x363_fixed_bar2_g10.json` (G≤10%, HP≤5, 16×18-nt bar_2 with min Hamming 8).
+- **Assignment:** unique bar_1 per block; distinct bar_2 within a block; global uniqueness is the pair `(bar_1, bar_2)`.
+- **Block size:** `grid_configuration.block_size` is passed into `DualBarcodeLayout` (no longer hardcoded-only).
+- **Half density (printed):** first 117 rows checkerboard; see `generate_checkerboard_235x363.py`.
 
 ### Zipcodes (printed)
 - **Barcode:** [column code 18 nt][row code 18 nt], with no separator and no random tail.
@@ -82,24 +117,26 @@ Both designs use seed 42, the printed bit mapping (00→A, 01→C, 10→T, 11→
 Distances are in **bits**, and each base holds 2 bits. A bit distance d changes between d/2 bases (both bits of the same bases) and d bases (one bit per base), usually close to d. To control the difference in bases directly, the soft-constraint score would have to be computed on the DNA sequences instead.
 
 ### HSDB (Hierarchical Spatial Dual Barcodes)
-- **Structure:** bar_1 (28 nt = 14 nt column + 14 nt row Zipcodes on the **block** grid) + bar_2 (8 nt spot ID, 16 codes reused in every 4×4 block) = 36 nt.
+- **Structure:** bar_1 (24 nt = 12 nt column + 12 nt row Zipcodes on the **block** grid) + bar_2 (12 nt spot ID, 16 codes reused in every 4×4 block) = 36 nt. (Older 28+8 outputs remain in the repo for comparison.)
 - **bar_1 generator:** `HSDB/bar1_zipcode/generate_block_barcodes.py`. It calls `generate_column_and_row_codes` from `Zipcodes/`.
-  - **Was broken:** candidates were random 28-bit codes; G ≤ 25% and homopolymers were applied afterwards by rewriting finished barcodes (G→T, forced substitutions). That broke the X+Y structure and the distance gradient (adjacent DNA mean 6.6, far min 1).
+  - **Was broken:** candidates were random bit strings; G ≤ 25% and homopolymers were applied afterwards by rewriting finished barcodes (G→T, forced substitutions). That broke the X+Y structure and the distance gradient (adjacent DNA mean 6.6, far min 1).
   - **Fixed:** `candidate_mode: "flip"`, `require_tolerance: true`, G and junction homopolymers rejected in the candidate loop. No post-hoc rewrite. QC asserts uniqueness and intact X+Y structure.
-- **bar_2:** already enforced G ≤ 20% and homopolymer ≤ 3 during selection (`bar2_library/generate_spot_barcodes.py`).
+- **bar_2:** `bar2_library/generate_spot_barcodes.py` (default 12 nt). G, GC, homopolymer and leading-run ≤ 1 are enforced during selection.
 - **Configs (all flip mode, printed bit mapping):**
 
-| Array | Config | Block grid | Targets (bits) | Far min (bits) |
-|---|---|---|---|---|
-| 118×182 | `block_zipcode_config.json` | 30×46 | 4, 8, 12, 16 | 12 (was 16; 16 failed under the G cap) |
-| 235×363 | `block_zipcode_config_235x363.json` | 59×91 | 2, 4, 6, 8 | 8 |
-| 253×363 | `block_zipcode_config_253x363.json` | 64×91 | 2, 4, 6, 8 | 8 |
-| 295×363 extra | `block_zipcode_config_253x363_extra.json` | 85×91 | 2, 4, 6, 8 | 8 |
+| Array | Config | Block grid | Axis bits | Targets (bits) | Far min (bits) |
+|---|---|---|---|---|---|
+| 118×182 | `block_zipcode_config.json` | 30×46 | 28 (legacy) | 4, 8, 12, 16 | 12 (was 16; 16 failed under the G cap) |
+| 235×363 | `block_zipcode_config_235x363.json` | 59×91 | 28 (legacy) | 2, 4, 6, 8 | 8 |
+| 235×363 zero-G 24+12 | `block_zipcode_config_235x363_g0_d4-10_far8_24nt.json` | 59×91 | **24** | 4, 6, 8, 10 | **8** (10 failed under zero G) |
+| 253×363 | `block_zipcode_config_253x363.json` | 64×91 | 28 (legacy) | 2, 4, 6, 8 | 8 |
+| 295×363 extra | `block_zipcode_config_253x363_extra.json` | 85×91 | 28 (legacy) | 2, 4, 6, 8 | 8 |
 
-- **bar_1/bar_2 junction:** bar_2 leading runs are ≤ 1 nt. Row (Y) codes are generated with `downstream_start_runs` so their trailing run plus a bar_2 start stays ≤ 3. The layout assembler only assigns junction-safe bar_2 codes and checks the combined homopolymer.
-- **Regenerated 235×363 (G ≤ 25%, targets 2/4/6/8):** `HSDB/bar1_zipcode/235x363/` and `HSDB/outputs/235x363/`. Soft targets hit exactly. Adjacent DNA mean 1.9 bases; combined G max 19%; combined homopolymers ≤ 3.
-- **Zero-G 235×363 (targets 4/6/8/10, far 10):** `HSDB/bar1_zipcode/235x363_g0_d4-10_far10/` and `HSDB/outputs/235x363_g0_d4-10_far10/`. Config `block_zipcode_config_235x363_g0_d4-10_far12.json` failed at far=12; far=10 works. Soft targets essentially met (Y exact; X offset-1 mean 3.96). **No G** in bar_1, bar_2 (`spot_barcodes_8nt_g0.txt`, min Hamming 4) or combined barcodes. Homopolymers ≤ 5. Adjacent DNA mean 3.6 bases.
-- **118×182 bar_1:** `HSDB/bar1_zipcode/118x182/`. Soft targets 4/8/12/16 hit exactly; adjacent DNA mean 3.7 bases.
+- **bar_1/bar_2 junction:** bar_2 leading runs are ≤ 1 nt. Row (Y) codes are generated with `downstream_start_runs` so their trailing run plus a bar_2 start stays ≤ the homopolymer limit. The layout assembler only assigns junction-safe bar_2 codes and checks the combined homopolymer.
+- **Current zero-G 235×363 (24+12, targets 4/6/8/10, far 8):** `HSDB/bar1_zipcode/235x363_g0_d4-10_far8_24+12/` and `HSDB/outputs/235x363_g0_d4-10_far8_24+12/`. bar_2: `spot_barcodes_12nt_g0.txt` (min Hamming 5). **No G** anywhere; homopolymers ≤ 5; adjacent DNA mean 3.6 bases; far DNA min 5.
+- **Legacy 28+8 zero-G 235×363 (targets 4/6/8/10, far 10):** `HSDB/bar1_zipcode/235x363_g0_d4-10_far10/` and `HSDB/outputs/235x363_g0_d4-10_far10/` with `spot_barcodes_8nt_g0.txt`.
+- **Legacy 28+8 G≤25% 235×363 (targets 2/4/6/8):** `HSDB/bar1_zipcode/235x363/` and `HSDB/outputs/235x363/`.
+- **118×182 bar_1 (legacy 28 nt):** `HSDB/bar1_zipcode/118x182/`. Soft targets 4/8/12/16 hit exactly; adjacent DNA mean 3.7 bases.
 
 ### Greedy + 2-OPT (printed baseline; separate repository)
 Greedy + 2-OPT is a third-party method (BarLay, Jatzkowski et al. 2024) used as the baseline. Its code lives in its own repository (local clones: `~/Documents/Barlay_new/BarLay`, `~/Documents/layout_opt/BarLay`) and should not be added to or modified from this repo. This repo only consumes its output: the printed layout in `data/1in1/` and the second pool for decoys.
@@ -148,28 +185,41 @@ The regenerated outputs are byte-identical to the committed ones (verified Oct 2
 ## Repository map
 
 ```
-AGENTS.md                 <- this file
-docs/methods.md           <- manuscript Methods excerpt (authoritative)
+AGENTS.md                 <- this file (read first)
+docs/
+  methods.md              manuscript Methods excerpt (authoritative for printed designs)
+  NewFourArrays_Summary.md  full methods for four NN≈8 designs (main only)
+  ZENODO.md               Zenodo deposit checklist and DOI
+SummaryNewDesigns.md      quick reference for four NN≈8 arrays (main only)
 data/
-  1in1/                   printed full-density layouts (.csv with coords, .txt one barcode per line) + config_files/
-  1in2/                   half-density layouts (Dual: layout_1in2_dual_4x4.csv with printer x,y)
-  decoy_layouts/barcodes/1in1/   old independent decoys + the second Greedy pool
-decoys/scripts/           make_dual_decoys.py, make_zip_decoys.py, make_greedy_decoys.py, check_decoys.py, run_all.sh
-decoys/output/, decoys/qc/       generated decoys and QC JSONs
-Dual_barcodes/ Zipcodes/ Quadtree/ HSDB/   method code + their outputs (incl. 118×182 sets and *_decoy variants)
-inhouse_barcodes/         random input libraries
-figures/, plot_*.py, generate_presentation.py, combine_full_checkerboard.py, get_layout_bounds.py   plotting/helpers
-README.md, README_118x182_generation.md, IMPROVEMENT_PLAN.md, SummaryNewDesigns.md, manuscript.txt   older notes
-*.sh                      HPC (VSC, SLURM) job scripts with absolute cluster paths
+  1in1/                   printed full-density layouts (.csv with coords, .txt barcodes) + config_files/
+  1in2/                   half-density Dual layout (printer x,y)
+  decoy_layouts/barcodes/1in1/   old independent decoys + second Greedy pool
+decoys/
+  scripts/                make_dual_decoys.py, make_zip_decoys.py, make_greedy_decoys.py,
+                          check_decoys.py, run_all.sh (manuscript),
+                          plot_nn_distance_histograms.py, plot_activation_masks.py (main)
+  output/                 generated decoy files
+  qc/                     real-barcode lists + QC JSONs
+  figures/                NN histograms, activation masks (main)
+  README.md               decoy documentation
+Dual_barcodes/            Dual barcode generator + configs/layouts (printed + NN≈8 redesigns)
+Zipcodes/                 Zipcode generator + configs/outputs (printed + flip-mode redesigns)
+HSDB/                     HSDB generator + configs/outputs (NN≈8 colored design)
+Quadtree/                 Quadtree method (non-manuscript)
+inhouse_barcodes/         random 18-nt input libraries
+simulation/               read simulator (main); output/ gitignored → Zenodo
+archive/historical/       obsolete notes/scripts kept for reference
+figures/                  early 118×182 schematic figures (historical)
 ```
 
-**Printed layout files** (the ground truth):
+**Printed layout files** (ground truth; on both `main` and `manuscript`):
 
 | Method | File | Format |
 |---|---|---|
-| Dual | `data/1in1/layout_235x363_dual_4x4.csv` | `row,col,combined` (identical to `Dual_barcodes/layout_235x363_dual_4x4.csv`, which also has `bar_1,bar_2`) |
-| Zipcodes | `data/1in1/layout_235x363_zipcodes_nosep.csv` | `row,col,barcode` (identical to `Zipcodes/output_235x363_nosep/layout_235x363_zipcodes_nosep_colmajor.csv`) |
-| Greedy | `data/1in1/layout_235x363_randombarcodes_opt_coords.csv` | no header: `barcode,col,row` |
+| Dual | `data/1in1/layout_235x363_dual_4x4.csv` | `row,col,combined` |
+| Zipcodes | `data/1in1/layout_235x363_zipcodes_nosep.csv` | `row,col,barcode` |
+| Greedy | `data/1in1/layout_235x363_randombarcodes_opt_coords.csv` | `barcode,col,row` (no header) |
 | Dual half density | `data/1in2/layout_1in2_dual_4x4.csv` | `row,col,combined,x,y` |
 
 The `.txt` versions list one barcode per line, in column-major order.
@@ -197,7 +247,7 @@ The `.txt` versions list one barcode per line, in column-major order.
 6. **2-OPT pool exchanges (open question, concerns the external BarLay code).** The manuscript says 2-OPT also swaps placed barcodes with unplaced pool barcodes. The BarLay paper describes swaps between placed barcodes only. Unresolved.
 7. **φ for Zipcodes.** Zipcodes misassignments stay on one axis, so use φ = 1/3 (local), not the global ≈ 1/2.
 8. **Absolute cluster paths.** These point at `/user/gent/446/vsc44685/ScratchVO_dir/layout_opt/…`. They appear in the `*.sh` scripts and in `barcode_file` / `library_file` in the JSON configs. Adapt them before running locally.
-9. **Not tracked in git (see `.gitignore`).** Simulated reads (`*.fastq`, `*_read_L36zip*.txt`, ~230 MB) and SLURM logs are local only.
+9. **Not tracked in git (see `.gitignore`).** Simulated reads (`*.fastq`, `simulation/output/`, ~1.9 GB) and SLURM logs are gitignored. Pre-generated reads are on Zenodo (see `docs/ZENODO.md`).
 10. **`generate_layout_235x363_zipcodes.py` exits with code 1 even on success.**
     - It prints `Warning: Analysis error: 'distance_stats'`, then ends with `name 'analysis' is not defined`.
     - Both are bugs in the summary printout, present since the initial import. Every output file is written before they occur.

@@ -1,21 +1,12 @@
-# New Optimized layouts
+# New Optimized layouts (NN≈8)
 
-## 1 HSBD: a Combination of dual barcdoes with zip codes strategies
+See **`docs/NewFourArrays_Summary.md`** for the full summary (methods, soft-distance tables, regenerate commands) and **`decoys/README.md`** for decoys.
 
-- generate  28nt long bar1  using the zipcodes strategy.
-    - ouput dir: layout_opt/HSDB/bar1_zipcode/235x363_extra/bar1_codebook.csv
-    - config file: layout_opt/HSDB/bar1_zipcode/block_zipcode_config_253x363_extra.json
-    - excess of block rows was set in the generation of bar1 zipcodes.
-- a library of 8nt for bar2 was created 
-- the final layout is generated concatenating the bar1 and bar2.
-    - two outputs one with excess and one with the exact dimensions.
-- the G content in the final library:
-    - Mean G content: 18.11%
-    - Max G content: 22.22%
-    - Min G content: 0.00%
-    - Median G content: 19.44%
+| Array | Layout | Real NN μ | Decoy→real μ |
+|-------|--------|-----------|--------------|
+| Zipcodes flip | `Zipcodes/output_235x363_flip_g10_h5_d12-16_far10/` | 7.0 | 7.3 |
+| HSDB colored | `HSDB/outputs/235x363_g10_h5_d12-16_far8_24+12_nn8_colored/` | 8.0 | 7.9 |
+| Dual shared_pool minH6 | `Dual_barcodes/layout_235x363_dual_shared_pool_g10_minH6.csv` | **8.6** | **8.6** |
+| Dual fixed_bar2 8×8 | `Dual_barcodes/layout_235x363_dual_fixed_bar2_8x8_g10_nn8.csv` | 7.0 | 7.0 |
 
-## 2 new zipcodes, controling the G content
-
-
-
+All: 235×363, 36 nt, G&lt;10%, HP≤5. Soft Zip/HSDB: **12/14/16/16**. HSDB uses 16-color bar₂ libraries for NN≈8. Dual shared_pool packs halves to **min Hamming ≥ 6**.
