@@ -1,0 +1,68 @@
+{
+  "real": {
+    "n": 85305,
+    "n_unique": 85305,
+    "nearest_other_real": {
+      "min": 4.0,
+      "p05": 6.0,
+      "median": 8.0,
+      "mean": 7.787333333333334,
+      "p95": 10.0,
+      "max": 12.0
+    },
+    "composition": {
+      "g_fraction": {
+        "min": 0.027777777777777776,
+        "p05": 0.08333333333333333,
+        "median": 0.08333333333333333,
+        "mean": 0.08216302287869018,
+        "p95": 0.08333333333333333,
+        "max": 0.08333333333333333
+      },
+      "max_homopolymer": {
+        "min": 1.0,
+        "p05": 2.0,
+        "median": 3.0,
+        "mean": 2.7416329640701016,
+        "p95": 3.0,
+        "max": 5.0
+      }
+    }
+  },
+  "dual_shared_pool_g10": {
+    "file": "../output/dual_shared_pool_g10/dual_decoys.txt",
+    "n_in_file": 42652,
+    "n_used": 42652,
+    "n_unique": 42652,
+    "overlap_with_real": 0,
+    "global_decoy_share": 0.3333307282915354,
+    "local_decoy_share_k10": 0.34159999999999996,
+    "local_decoy_share_nearest_ties": 0.3394333203833204,
+    "nearest_real": {
+      "min": 4.0,
+      "p05": 6.0,
+      "median": 8.0,
+      "mean": 7.709333333333333,
+      "p95": 10.0,
+      "max": 11.0
+    },
+    "composition": {
+      "g_fraction": {
+        "min": 0.0,
+        "p05": 0.08333333333333333,
+        "median": 0.08333333333333333,
+        "mean": 0.08215389144184979,
+        "p95": 0.08333333333333333,
+        "max": 0.08333333333333333
+      },
+      "max_homopolymer": {
+        "min": 1.0,
+        "p05": 2.0,
+        "median": 3.0,
+        "mean": 2.741301697458501,
+        "p95": 3.0,
+        "max": 5.0
+      }
+    }
+  }
+}

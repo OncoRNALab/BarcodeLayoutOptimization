@@ -1,0 +1,70 @@
+{
+  "dual_shared_pool_g10_minH6": {
+    "label": "Dual shared_pool minH6",
+    "real": {
+      "n": 1000,
+      "mean": 8.614,
+      "median": 9.0,
+      "min": 6,
+      "max": 11
+    },
+    "decoy": {
+      "n": 1000,
+      "mean": 8.58,
+      "median": 9.0,
+      "min": 6,
+      "max": 12
+    }
+  },
+  "dual_fixed_bar2_8x8_g10_nn8": {
+    "label": "Dual fixed_bar2 8\u00d78 NN\u22488",
+    "real": {
+      "n": 1000,
+      "mean": 7.0,
+      "median": 7.0,
+      "min": 7,
+      "max": 7
+    },
+    "decoy": {
+      "n": 1000,
+      "mean": 7.03,
+      "median": 7.0,
+      "min": 7,
+      "max": 8
+    }
+  },
+  "zipcodes_flip_g10_nn8": {
+    "label": "Zipcodes flip G10 NN\u22488",
+    "real": {
+      "n": 1000,
+      "mean": 7.04,
+      "median": 7.0,
+      "min": 6,
+      "max": 8
+    },
+    "decoy": {
+      "n": 1000,
+      "mean": 7.313,
+      "median": 7.0,
+      "min": 6,
+      "max": 9
+    }
+  },
+  "hsdb_g10_nn8_colored": {
+    "label": "HSDB colored NN\u22488",
+    "real": {
+      "n": 1000,
+      "mean": 7.995,
+      "median": 8.0,
+      "min": 7,
+      "max": 8
+    },
+    "decoy": {
+      "n": 1000,
+      "mean": 7.859,
+      "median": 8.0,
+      "min": 7,
+      "max": 9
+    }
+  }
+}
