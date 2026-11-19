@@ -1,0 +1,58 @@
+{
+  "_comment": [
+    "HSDB bar_1 for 235x363 (59x91 blocks): X(12nt)+Y(12nt)=24nt, G < 10%.",
+    "Soft targets 14/16/18/18 bits targeting bar1/combined NN≈8; far min 10.",
+    "Homopolymer ≤ 5. Combined with 12nt bar_2 (minH≥8) → 36nt. Flip mode."
+  ],
+  "chip_geometry": {
+    "type": "rectangular",
+    "rows": 59,
+    "cols": 91,
+    "feature_size_microns": 56.0,
+    "feature_spacing_microns": 64.0
+  },
+  "error_correction": {
+    "type": "edit_distance",
+    "distances": [14, 16, 18, 18],
+    "far_features_min_distance": 10
+  },
+  "bit_to_dna": {
+    "scheme": "4-bits-per-base",
+    "mapping": {
+      "1000": "A",
+      "0100": "C",
+      "0010": "T",
+      "0001": "G"
+    }
+  },
+  "sequence_qc": {
+    "gc_content_min": 0.0,
+    "gc_content_max": 1.0,
+    "g_content_max": 0.1,
+    "max_homopolymer_length": 5,
+    "reject_sequences_with_long_homopolymers": true
+  },
+  "codebook": {
+    "spacer_sequence": "",
+    "feature_id_format": "row_col",
+    "output_format": "csv"
+  },
+  "simulation": {
+    "error_model": "indel",
+    "per_base_error_rate": 0.03,
+    "distance_metric": "levenshtein",
+    "max_edit_distance_for_decoding": 4
+  },
+  "axis_code": {
+    "max_attempts_per_position": 30000,
+    "backtrack_depth": 14,
+    "max_backtracks": 3000,
+    "random_seed": 42,
+    "tolerance": 0.5,
+    "candidate_mode": "flip",
+    "flip_counts": [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
+    "require_tolerance": true
+  },
+  "x_bit_length": 24,
+  "y_bit_length": 24
+}
