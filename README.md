@@ -21,11 +21,22 @@ git checkout main
 | Manuscript decoys | `decoys/output/dual/`, `dual_1in2/`, `zipcodes_balanced_khalf/`, `greedy/` |
 | Authoritative methods | `docs/methods.md` |
 | Regenerate instructions | `REPRODUCE.md` |
+| Decode FASTQs with QUIK | `docs/decode/README.md` |
 
 ## Reproduce
 
 See [`REPRODUCE.md`](REPRODUCE.md).
 
+### Decode reads (QUIK only)
+
+Raw and simulated FASTQs are decoded with QUIK through the companion pipeline
+[BarcodeCalling_benchmark](https://github.com/OncoRNALab/BarcodeCalling_benchmark)
+(`--tool quik`). Step-by-step instructions and example params:
+
+→ [`docs/decode/README.md`](docs/decode/README.md)
+
 ## Large files (FASTQs)
 
-Simulated reads and other large files are deposited on Zenodo. See [`docs/ZENODO.md`](docs/ZENODO.md).
+Real and simulated FASTQs are on Zenodo
+([10.5281/zenodo.24366834](https://doi.org/10.5281/zenodo.24366834)).
+See [`docs/ZENODO.md`](docs/ZENODO.md).

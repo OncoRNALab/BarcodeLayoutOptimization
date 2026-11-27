@@ -1,0 +1,15 @@
+{
+  "tool": "quik",
+  "barcode_file": "/ABS/PATH/BarcodeLayoutOptimization/decoys/output/dual/dual_whitelist_real_plus_decoys.txt",
+  "r1_fastq": "/ABS/PATH/zenodo/1M_high_dual_R1.fastq",
+  "r2_fastq": "/ABS/PATH/zenodo/1M_high_dual_R2.fastq",
+  "sample_id": "quik_dual_combined_1M",
+  "barcode_start": 0,
+  "barcode_length": 36,
+  "strategy": "4_mer_gpu_v4",
+  "distance_measure": "SEQUENCE_LEVENSHTEIN",
+  "rejection_threshold": 7,
+  "data_mode": "real",
+  "ground_truth": null,
+  "outdir": "results/dual_full_sim_r7"
+}

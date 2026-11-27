@@ -84,18 +84,76 @@ See `decoys/scripts/run_all.sh` for exact arguments.
 
 ---
 
-## 4. Simulated reads
+## 4. Simulated and real FASTQs
 
-**1,000,000 paired-end reads** per layout were simulated with the error model of
-Press et al. (high-error regime: 3% substitutions, 15% insertions, 14% deletions).
+**Simulated reads.** 1,000,000 paired-end reads per layout with the Press et al.
+error model (full density: high-error 3% / 15% / 14%; Dual half density:
+medium-error 4% / 5% / 14%). Bare 36-nt barcodes (no handles).
 
-Pre-generated FASTQs are on **Zenodo** (DOI: `TBD` — see [`docs/ZENODO.md`](docs/ZENODO.md)).
+**Real sequencing.** Demultiplexed MiSeq paired-end FASTQs for Dual, Greedy +
+2-OPT, Zipcodes (full density) and Dual half density (checkerboard).
 
-The simulation code is in the `main` branch under `simulation/` (not on this branch).
+All FASTQs are on **Zenodo** ([10.5281/zenodo.24366834](https://doi.org/10.5281/zenodo.24366834));
+see [`docs/ZENODO.md`](docs/ZENODO.md) for expected filenames.
+
+The simulation code lives on the `main` branch under `simulation/` (not on this
+branch).
 
 ---
 
-## 5. File checklist
+## 5. Decode FASTQs with QUIK
+
+Paper decoding used **QUIK only**, via the companion Nextflow pipeline
+[BarcodeCalling_benchmark](https://github.com/OncoRNALab/BarcodeCalling_benchmark)
+(`--tool quik`; do not run RandomBarcodes or Columba for manuscript
+reproduction).
+
+Full step-by-step instructions, the layout × threshold matrix, and example
+params JSON files:
+
+→ **[`docs/decode/README.md`](docs/decode/README.md)**
+
+Summary:
+
+```bash
+git clone https://github.com/OncoRNALab/BarcodeCalling_benchmark.git
+cd BarcodeCalling_benchmark
+
+# Real Dual full density, r = 7 (edit paths)
+nextflow run main.nf \
+  --tool quik \
+  --barcode_file /path/to/BarcodeLayoutOptimization/decoys/output/dual/dual_whitelist_real_plus_decoys.txt \
+  --r1_fastq /path/to/zenodo/26_018_S1_L001_R1_001.fastq.gz \
+  --r2_fastq /path/to/zenodo/26_018_S1_L001_R2_001.fastq.gz \
+  --sample_id 26_018_S1_quik \
+  --barcode_start 10 \
+  --barcode_length 36 \
+  --strategy 4_mer_gpu_v4 \
+  --distance_measure SEQUENCE_LEVENSHTEIN \
+  --rejection_threshold 7 \
+  --data_mode real \
+  --outdir results/dual_full_r7 \
+  -profile local,singularity
+```
+
+| | Real sequencing | Simulated |
+|--|-----------------|-----------|
+| `barcode_start` | `10` | `0` |
+| Whitelist | `decoys/output/*/…whitelist_real_plus_decoys*.txt` | same |
+| `r` full density | `{5, 6, 7}` | `{5, 6, 7}` |
+| `r` Dual half | `{6, 7, 8}` | `{6, 7, 8}` |
+
+Or use a params file from `docs/decode/params/` (replace `/ABS/PATH/...`):
+
+```bash
+nextflow run main.nf \
+  -params-file /path/to/BarcodeLayoutOptimization/docs/decode/params/dual_full_real_r7.json \
+  -profile local,singularity
+```
+
+---
+
+## 6. File checklist
 
 Tick before submitting or sharing:
 
@@ -108,11 +166,12 @@ Tick before submitting or sharing:
 - [ ] `decoys/output/zipcodes_balanced_khalf/zip_decoysv2.txt` and `zip_whitelist_real_plus_decoysv2.txt` present
 - [ ] `decoys/output/greedy/greedy_decoys.txt` present
 - [ ] `decoys/scripts/run_all.sh` runs successfully on a fresh clone
-- [ ] Zenodo DOI updated in `docs/ZENODO.md`
+- [ ] Zenodo FASTQs downloaded; QUIK decode steps in `docs/decode/` runnable
+- [ ] Zenodo DOI listed in `docs/ZENODO.md`
 
 ---
 
-## 6. Key parameters
+## 7. Key parameters
 
 | Parameter | Value |
 |-----------|-------|
@@ -127,4 +186,6 @@ Tick before submitting or sharing:
 | Zipcodes hard min (bits) | ≥ 8 at offset ≥ 5 |
 | Decoy φ (Dual, Greedy) | 1/3 (global) |
 | Decoy φ (Zipcodes) | 1/3 (local, per axis) |
+| QUIK strategy | `4_mer_gpu_v4` |
 | QUIK threshold r | {5, 6, 7} full density; {6, 7, 8} half density |
+| QUIK `barcode_start` | 10 (real); 0 (simulated) |
