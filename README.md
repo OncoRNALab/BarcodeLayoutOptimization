@@ -2,7 +2,7 @@
 
 **Frozen snapshot** for the BMC Bioinformatics paper on spatial barcode layout optimization.
 
-This branch contains the printed layouts, structure-matched decoys, and generator configs needed to reproduce all paper results. It does **not** contain the NN≈8 redesigns (see `main`). Simulated and real FASTQs are on Zenodo; Press-model read simulation used RandomBarcodes (not shipped on this branch) — see [`REPRODUCE.md`](REPRODUCE.md) §4.
+This branch contains the printed layouts, structure-matched decoys, and generator configs needed to reproduce all paper results. It does **not** contain the NN≈8 redesigns (see `main`). Simulated and real FASTQs are on Zenodo; optional regeneration uses [BarcodeCalling_benchmark](https://github.com/OncoRNALab/BarcodeCalling_benchmark) (`bin/press/`) — see [`REPRODUCE.md`](REPRODUCE.md) §4.
 
 For ongoing design work, switch to `main`:
 

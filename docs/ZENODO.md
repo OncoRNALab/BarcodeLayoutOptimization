@@ -51,10 +51,12 @@ Decode with QUIK via
 
 Whitelists are committed in this branch under `decoys/output/`.
 
-To **regenerate** simulated reads instead of downloading them, see
-[`REPRODUCE.md`](../REPRODUCE.md) §4.2 (RandomBarcodes / Press `makeerrors`).
-The `simulation/` code on branch `main` is for NN≈8 redesigns only, not these
-files.
+To **regenerate** simulated FASTQs instead of downloading them, see
+[`REPRODUCE.md`](../REPRODUCE.md) §4.2
+([BarcodeCalling_benchmark](https://github.com/OncoRNALab/BarcodeCalling_benchmark)
+`bin/press/`: simulate with `2_SimGen_split.py`, then
+`3_Generate_FASTQ_pairs.py`). The `simulation/` code on branch `main` is for
+NN≈8 redesigns only, not these files.
 
 ---
 
