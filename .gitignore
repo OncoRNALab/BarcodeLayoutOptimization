@@ -70,3 +70,7 @@ slurm-*.out
 Zipcodes/output_*/intermediate/
 Zipcodes/output_768x1024_*/
 Zipcodes/output_470x726_*/
+
+# Analysis regenerable outputs
+analyses/**/output/
+data/quik_out_manuscript/

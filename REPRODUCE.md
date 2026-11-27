@@ -5,6 +5,77 @@ BMC Bioinformatics paper results from this `manuscript` branch.
 
 ---
 
+## Workflow overview
+
+End-to-end path from raw inputs to paper metrics. Details for each step are in
+the numbered sections below.
+
+```text
+┌─────────────────────────────────────────────────────────────────────────┐
+│  1. Layouts + decoys                                                     │
+│     → this repo (committed)  OR  regenerate with scripts here (§1–3)     │
+├─────────────────────────────────────────────────────────────────────────┤
+│  2. FASTQ data                                                           │
+│     Real:     Zenodo                                                     │
+│     Simulated: Zenodo  OR  generate with BarcodeCalling_benchmark (§4)   │
+├─────────────────────────────────────────────────────────────────────────┤
+│  3. Decode                                                               │
+│     QUIK only, via BarcodeCalling_benchmark (--tool quik) (§5)           │
+├─────────────────────────────────────────────────────────────────────────┤
+│  4. Analyse                                                              │
+│     Python scripts in analyses/ (run_all.sh) (§6)                        │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### 1. Get the layouts (and decoys)
+
+| Option | What to do |
+|--------|------------|
+| **Use paper files (recommended)** | Clone this `manuscript` branch. Printed layouts are in `data/1in1/` and `data/1in2/`; structure-matched decoy whitelists are in `decoys/output/`. |
+| **Generate from scratch** | Run the Dual / Zipcodes generators and decoy scripts (§2–3). Greedy + 2-OPT needs a 150k barcode pool then [BarLay](https://github.com/Jatzkowski/BarLay) (§2). |
+
+Layouts are versioned in **this GitHub repository**, not on Zenodo.
+
+### 2. Get the FASTQ data
+
+| Data | Option A (recommended) | Option B |
+|------|------------------------|----------|
+| **Real sequencing** | Download from Zenodo ([10.5281/zenodo.24366834](https://doi.org/10.5281/zenodo.24366834)) | — |
+| **Simulated reads** | Download the same Zenodo deposit | Generate from the printed barcode `.txt` lists using [BarcodeCalling_benchmark](https://github.com/OncoRNALab/BarcodeCalling_benchmark) (`bin/press/`: simulate → paired FASTQ; §4.2) |
+
+Filenames: [`docs/ZENODO.md`](docs/ZENODO.md).
+
+### 3. Decode FASTQs with QUIK
+
+Use the Nextflow pipeline from the benchmarking paper:
+
+[OncoRNALab/BarcodeCalling_benchmark](https://github.com/OncoRNALab/BarcodeCalling_benchmark)
+
+- Set **`--tool quik`** only (do not run the other decoders).
+- Whitelist = real barcodes + layout-matched decoys (`decoys/output/…`).
+- Real reads: `barcode_start=10`; simulated: `barcode_start=0`.
+- Full density: `r ∈ {5,6,7}`; Dual half density: `r ∈ {6,7,8}`.
+
+Step-by-step commands and example params: §5 and [`docs/decode/README.md`](docs/decode/README.md).
+
+### 4. Run the analysis scripts
+
+After decoding, compute paper tables and figures with the Python analyses in
+this branch:
+
+```bash
+cd analyses
+pip install -r requirements.txt   # once
+./run_all.sh                      # or: ./run_all.sh python3
+```
+
+`run_all.sh` regenerates decoy QC where needed, then runs the notebooks and
+scripts for precision calibration, real-array rates, decoy quality, recall /
+sequence features, and related summaries. Individual folders under `analyses/`
+can also be run on their own. Details: §6.
+
+---
+
 ## 1. Printed layout files (ground truth — already committed)
 
 | Method | File | n barcodes |
@@ -325,7 +396,33 @@ nextflow run main.nf \
 
 ---
 
-## 6. File checklist
+## 6. Analysis (Python scripts)
+
+After QUIK decoding (§5), compute paper rates and figure inputs with the
+scripts under [`analyses/`](analyses/):
+
+```bash
+cd analyses
+pip install -r requirements.txt
+./run_all.sh                 # or: ./run_all.sh python3
+```
+
+**Expected inputs**
+
+| Input | Location |
+|-------|----------|
+| Layouts | `data/1in1/`, `data/1in2/` |
+| Decoy whitelists | `decoys/output/` |
+| QUIK decode outputs | `data/quik_out_manuscript/` (place §5 `outdir` results here, using the folder names expected by the notebooks — see [`analyses/README.md`](analyses/README.md)) |
+
+`run_all.sh` runs precision calibration, real-array metrics, decoy-quality
+checks, recall / sequence-feature scripts, and related notebooks (in that
+order). Individual folders under `analyses/` can be run alone. Figure builders
+live in `analyses/figures_manuscript/`.
+
+---
+
+## 7. File checklist
 
 Tick before submitting or sharing:
 
@@ -339,11 +436,12 @@ Tick before submitting or sharing:
 - [ ] `decoys/output/greedy/greedy_decoys.txt` present
 - [ ] `decoys/scripts/run_all.sh` runs successfully on a fresh clone
 - [ ] Zenodo FASTQs downloaded; QUIK decode steps in `docs/decode/` runnable
+- [ ] `analyses/run_all.sh` present; QUIK outputs available under `data/quik_out_manuscript/`
 - [ ] Zenodo DOI listed in `docs/ZENODO.md`
 
 ---
 
-## 7. Key parameters
+## 8. Key parameters
 
 | Parameter | Value |
 |-----------|-------|

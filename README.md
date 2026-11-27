@@ -22,10 +22,12 @@ git checkout main
 | Authoritative methods | `docs/methods.md` |
 | Regenerate instructions | `REPRODUCE.md` |
 | Decode FASTQs with QUIK | `docs/decode/README.md` |
+| Analysis scripts | `analyses/` (`run_all.sh`) |
 
 ## Reproduce
 
-See [`REPRODUCE.md`](REPRODUCE.md).
+End-to-end workflow (layouts → FASTQs → QUIK → analysis): start of
+[`REPRODUCE.md`](REPRODUCE.md).
 
 ### Decode reads (QUIK only)
 
