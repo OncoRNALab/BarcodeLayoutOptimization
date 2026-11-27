@@ -126,50 +126,11 @@ Seeds: row + column axes both use `random_seed: 42`.
 #### Step A — candidate pool (input to BarLay)
 
 Before placement, a **candidate pool of 150,000 unique 36-nt barcodes** was
-generated with the same procedure as in the companion benchmarking paper
-([Poma-Soto et al. 2026](https://github.com/OncoRNALab/BarcodeCalling_benchmark)):
-
-1. Draw 36-nt DNA sequences uniformly at random.
-2. Keep a sequence only if it is unique in the pool so far **and**
-   - maximum homopolymer run ≤ 3 nt, and
-   - G content ≤ 25% (≤ 9 G in 36 nt).
-3. Repeat until 150,000 sequences pass.
-
-This pool is **not** committed in the repo (large; regenerable). A minimal
-regenerator matching those filters:
-
-```bash
-python3 - <<'PY'
-import random
-from pathlib import Path
-
-def ok(seq: str) -> bool:
-    if seq.count("G") > 9:  # ≤ 25%
-        return False
-    run = best = 1
-    for a, b in zip(seq, seq[1:]):
-        run = run + 1 if a == b else 1
-        best = max(best, run)
-    return best <= 3
-
-random.seed(42)  # choose any seed; paper pool used an independent draw
-need, alphabet, seen, out = 150_000, "ACGT", set(), []
-while len(out) < need:
-    s = "".join(random.choices(alphabet, k=36))
-    if s in seen or not ok(s):
-        continue
-    seen.add(s)
-    out.append(s)
-Path("barcodes_150k_36nt.txt").write_text("\n".join(out) + "\n")
-print(f"wrote {len(out)} barcodes → barcodes_150k_36nt.txt")
-PY
-```
-
-Optionally, the same style of filtered random library can be built with the
-barcode-generation step in
+built with the barcode-generation step in
 [BarcodeCalling_benchmark](https://github.com/OncoRNALab/BarcodeCalling_benchmark)
-(`bin/press/scripts/1_BarcodeGen_split.py` / `BENCHMARK_README.md`); set
-`N: 150000`, `M: 36`, `homomax: 3`, and a G limit of 25% to match the
+(`bin/press/scripts/1_BarcodeGen_split.py` /
+[`BENCHMARK_README.md`](https://github.com/OncoRNALab/BarcodeCalling_benchmark/blob/main/bin/press/BENCHMARK_README.md));
+set `N: 150000`, `M: 36`, `homomax: 3`, and a G limit of 25% to match the
 manuscript wording.
 
 A **second, independent** pool of 150,000 barcodes was generated with the same
