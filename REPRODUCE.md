@@ -441,3 +441,43 @@ Tick before submitting or sharing:
 | QUIK strategy | `4_mer_gpu_v4` |
 | QUIK threshold r | {5, 6, 7} full density; {6, 7, 8} half density |
 | QUIK `barcode_start` | 10 (real); 0 (simulated) |
+
+---
+
+## 9. Manuscript figures → scripts
+
+Main-text figures are written as PDFs under `figures/` (submission package
+renames them to `Figure1.pdf` … `Figure9.pdf`). Run the analysis pipeline
+first (§6) so QUIK-derived tables exist, then:
+
+```bash
+# Figures 1–4, 6–7
+python analyses/figures_manuscript/make_results_figures.py
+
+# Figure 5
+python analyses/library_complexity/library_complexity.py \
+  --data-dir data/1in1 --out-dir figures
+
+# Figures 8–9
+python analyses/figures_manuscript/make_checkerboard_figures.py
+```
+
+| Figure | Label | Output PDF | Script |
+|--------|-------|------------|--------|
+| **1** | `fig:masks` | `figures/masks.pdf` | `analyses/figures_manuscript/make_results_figures.py` (`masks()`) |
+| **2** | `fig:decoy_distances` | `figures/decoy_distances.pdf` | `analyses/figures_manuscript/make_results_figures.py` (`decoy_distances()`) |
+| **3** | `fig:precision_calibration` | `figures/precision_calibration.pdf` | `analyses/figures_manuscript/make_results_figures.py` (`calibration()`) |
+| **4** | `fig:assignment` | `figures/assignment_vs_precision.pdf` | `analyses/figures_manuscript/make_results_figures.py` (`assignment()`) |
+| **5** | `fig:complexity` | `figures/library_complexity.pdf` | `analyses/library_complexity/library_complexity.py` |
+| **6** | `fig:spatial` | `figures/spatial_reads.pdf` | `analyses/figures_manuscript/make_results_figures.py` (`spatial()`) |
+| **7** | `fig:gcontent` | `figures/g_content.pdf` | `analyses/figures_manuscript/make_results_figures.py` (`g_content()`) |
+| **8** | `fig:checkerboard_spatial` | `figures/checkerboard_spatial.pdf` | `analyses/figures_manuscript/make_checkerboard_figures.py` |
+| **9** | `fig:checkerboard_assignment` | `figures/checkerboard_assignment.pdf` | `analyses/figures_manuscript/make_checkerboard_figures.py` |
+
+Related scripts (not main-text figures in the current manuscript):
+
+| Output | Script | Notes |
+|--------|--------|-------|
+| `figures/encoding_schematic.pdf` | `analyses/figures_manuscript/make_encoding_schematic.py` | Dual / Zipcodes encoding schematic |
+| `figures/greedy_principle.pdf` | `analyses/figures_manuscript/make_greedy_schematic.py` | Greedy 8-neighbour schematic |
+| `figures/dual_full_vs_half_all_reads_assignment_vs_precision.pdf` | `analyses/figures_manuscript/make_dual_density_all_reads.py` | All-reads Dual full vs half comparison |

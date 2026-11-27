@@ -37,4 +37,6 @@ consumes.
 | `figures_manuscript/` | Results / schematic figure builders |
 | `dual_library_diversity/` | Dual half-library comparison |
 
+Figure → script mapping (main-text Figures 1–9): [`REPRODUCE.md`](../REPRODUCE.md) §9.
+
 See the parent [`REPRODUCE.md`](../REPRODUCE.md) workflow overview.
