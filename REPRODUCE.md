@@ -52,9 +52,71 @@ Seeds: row + column axes both use `random_seed: 42`.
 
 ### Greedy + 2-OPT
 
-The Greedy + 2-OPT layout was produced by [BarLay](https://github.com/Jatzkowski/BarLay)
-(external repository, not part of this repo) on NVIDIA A100 GPUs at the VSC.
-The printed layout is committed in `data/1in1/`.
+#### Step A — candidate pool (input to BarLay)
+
+Before placement, a **candidate pool of 150,000 unique 36-nt barcodes** was
+generated with the same procedure as in the companion benchmarking paper
+([Poma-Soto et al. 2026](https://github.com/OncoRNALab/BarcodeCalling_benchmark)):
+
+1. Draw 36-nt DNA sequences uniformly at random.
+2. Keep a sequence only if it is unique in the pool so far **and**
+   - maximum homopolymer run ≤ 3 nt, and
+   - G content ≤ 25% (≤ 9 G in 36 nt).
+3. Repeat until 150,000 sequences pass.
+
+This pool is **not** committed in the repo (large; regenerable). A minimal
+regenerator matching those filters:
+
+```bash
+python3 - <<'PY'
+import random
+from pathlib import Path
+
+def ok(seq: str) -> bool:
+    if seq.count("G") > 9:  # ≤ 25%
+        return False
+    run = best = 1
+    for a, b in zip(seq, seq[1:]):
+        run = run + 1 if a == b else 1
+        best = max(best, run)
+    return best <= 3
+
+random.seed(42)  # choose any seed; paper pool used an independent draw
+need, alphabet, seen, out = 150_000, "ACGT", set(), []
+while len(out) < need:
+    s = "".join(random.choices(alphabet, k=36))
+    if s in seen or not ok(s):
+        continue
+    seen.add(s)
+    out.append(s)
+Path("barcodes_150k_36nt.txt").write_text("\n".join(out) + "\n")
+print(f"wrote {len(out)} barcodes → barcodes_150k_36nt.txt")
+PY
+```
+
+The same filters can be applied via the RandomBarcodes / Press barcode-generation
+scripts shipped inside
+[BarcodeCalling_benchmark](https://github.com/OncoRNALab/BarcodeCalling_benchmark)
+(`bin/press/scripts/1_BarcodeGen_split.py`); set `N: 150000`, `M: 36`,
+`homomax: 3`, and a G limit of 25% to match the manuscript wording.
+
+A **second, independent** pool of 150,000 barcodes was generated with the same
+procedure for Greedy decoys (not used as BarLay input). Decoys were subsampled
+from that pool; the committed source used by `decoys/scripts/make_greedy_decoys.py`
+is `data/decoy_layouts/barcodes/1in1/greedy_decoybar_1in1_column_major.txt`
+(85,305 sequences from that second pool).
+
+#### Step B — placement with BarLay
+
+The first 150k pool was the input library for
+[BarLay](https://github.com/Jatzkowski/BarLay) (external repository; commit
+`e22a877603` as cited in the paper). BarLay ran greedy placement + 2-OPT local
+search with default settings on NVIDIA A100 GPUs at the VSC and placed
+**85,305** barcodes on the 235 × 363 grid. The printed layout is committed in
+`data/1in1/`:
+
+- `layout_235x363_randombarcodes_opt_coords.csv`
+- `layout_235x363_randombarcodes_opt.txt`
 
 ---
 
@@ -181,6 +243,7 @@ Tick before submitting or sharing:
 | Bit mapping | 00→A, 01→C, 10→T, 11→G |
 | Dual block size | 4 × 4 |
 | Dual random seed | 42 |
+| Greedy input pool | 150,000 unique 36-nt barcodes (homopolymer ≤ 3, G ≤ 25%) |
 | Zipcodes random seed | 42 |
 | Zipcodes soft targets (bits) | 2, 4, 6, 8 at offsets 1–4 |
 | Zipcodes hard min (bits) | ≥ 8 at offset ≥ 5 |
