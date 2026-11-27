@@ -148,18 +148,71 @@ See `decoys/scripts/run_all.sh` for exact arguments.
 
 ## 4. Simulated and real FASTQs
 
-**Simulated reads.** 1,000,000 paired-end reads per layout with the Press et al.
-error model (full density: high-error 3% / 15% / 14%; Dual half density:
-medium-error 4% / 5% / 14%). Bare 36-nt barcodes (no handles).
+### 4.1 Pre-generated FASTQs (recommended)
 
-**Real sequencing.** Demultiplexed MiSeq paired-end FASTQs for Dual, Greedy +
+**Simulated reads** (1,000,000 paired-end reads per layout) and **real
+sequencing** FASTQs are deposited on Zenodo
+([10.5281/zenodo.24366834](https://doi.org/10.5281/zenodo.24366834)).
+File names are listed in [`docs/ZENODO.md`](docs/ZENODO.md).
+
+| | Full-density Dual / Greedy / Zipcodes | Dual half density |
+|--|---------------------------------------|-------------------|
+| Error regime | high: 3% sub / 15% ins / 14% del | medium: 4% / 5% / 14% |
+| Read form | bare 36-nt barcodes (no handles) | same |
+| Source barcodes | printed layouts only (no decoys) | same |
+
+Real sequencing: demultiplexed MiSeq paired-end FASTQs for Dual, Greedy +
 2-OPT, Zipcodes (full density) and Dual half density (checkerboard).
 
-All FASTQs are on **Zenodo** ([10.5281/zenodo.24366834](https://doi.org/10.5281/zenodo.24366834));
-see [`docs/ZENODO.md`](docs/ZENODO.md) for expected filenames.
+**This `manuscript` branch does not ship the simulation code.** Download the
+Zenodo FASTQs to reproduce decoding and downstream analyses.
 
-The simulation code lives on the `main` branch under `simulation/` (not on this
-branch).
+> Note: the `simulation/` directory on branch `main` is for the separate NN≈8
+> redesign experiments (different layouts and a different error channel). Do
+> **not** use it to regenerate the manuscript Press-model reads below.
+
+### 4.2 Regenerate simulated reads (optional)
+
+Paper simulations used the Press et al. error model as implemented in
+[RandomBarcodes](https://github.com/whpress/RandomBarcodes) (`makeerrors`).
+The same scripts are vendored in the companion pipeline:
+
+[BarcodeCalling_benchmark `bin/press/`](https://github.com/OncoRNALab/BarcodeCalling_benchmark/tree/main/bin/press)
+(`scripts/2_SimGen_split.py` + `RandomBar_Functions.makeerrors`).
+
+Inputs are the printed barcode lists (one sequence per line) from this branch:
+
+| Layout | Barcode file |
+|--------|--------------|
+| Dual full | `data/1in1/layout_235x363_dual_4x4.txt` |
+| Zipcodes | `data/1in1/layout_235x363_zipcodes_nosep.txt` |
+| Greedy + 2-OPT | `data/1in1/layout_235x363_randombarcodes_opt.txt` |
+| Dual half | `data/1in2/layout_1in2_dual_4x4.txt` |
+
+Typical Press / RandomBarcodes settings used for the paper:
+
+| Parameter | Full density | Dual half |
+|-----------|--------------|-----------|
+| `Q` (reads) | 1_000_000 | 1_000_000 |
+| `srate` / `irate` / `drate` | 0.03 / 0.15 / 0.14 | 0.04 / 0.05 / 0.14 |
+| `nave` | 4 (Poisson draws per sampled barcode) | 4 |
+
+Workflow sketch (after installing RandomBarcodes or using `bin/press/` from
+BarcodeCalling_benchmark; see that repo’s `BENCHMARK_README.md`):
+
+1. Build or load a pickle of the printed barcode list (`N` = number of lines,
+   `M` = 36).
+2. Run `2_SimGen_split.py` with a YAML config setting `Q`, `nave`, and the
+   rates above; write reads + answer indices.
+3. Convert the plain-text read list to paired FASTQ (R1 = read; R2 =
+   reverse-complement of R1) if your decoder expects FASTQ — the Zenodo
+   files are already in that form.
+
+Exact seeds and intermediate pickle paths from the original runs are not
+committed here; regenerated reads will match the error model and rates but
+will not be byte-identical to Zenodo unless the same seed and sampling
+stream are reproduced. Prefer the Zenodo deposit for manuscript-identical
+inputs.
 
 ---
 
